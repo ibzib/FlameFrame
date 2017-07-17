@@ -10,32 +10,32 @@ public final class ChaosGame {
 		for (int w = 1; w < system.length; w++) {
 			weight[w] = system[w].getWeight() + weight[w-1];
 		}
-		// initialize output
-		int[][] output = new int[width][height];
-		// generate a random starting point
 		Random rand = new Random();
-		Point p = new Point(rand.nextDouble(), rand.nextDouble());
-		// iterate to solve system
+		Point p = new Point(rand.nextDouble(), rand.nextDouble()); // generate a random starting point
 		int outOfBoundsCount = 0; // count the points that fall out of bounds
+		int[][] solution = new int[width][height];
+		System.out.println("Running chaos game...");
 		for (int i = 0; i < iterations; i++) {
-			// choose a random function
-			double randf = rand.nextDouble() * weight[weight.length-1];
+			if (i % (iterations / 10) == 0) {
+				System.out.println("Iteration " + i);
+			}
+			double randf = rand.nextDouble() * weight[weight.length-1]; // choose a random function
 			int f;
 			for (f = 0; f < weight.length; f++) {
 				if (randf < weight[f]) break;
 			}
 			p = system[f].transform(p);
-			if (i >= ignoredIterations) {
-				if (p.x < 0 || p.x >= 1 || p.y < 0 || p.y >= 1) {
-					outOfBoundsCount++;
-				} else {
-					int x = (int)(p.x * width);
-					int y = (int)(p.y * height);
-					output[x][y]++;
+			if (p.x < -1 || p.x > 1 || p.y < -1 || p.y > 1) {
+				outOfBoundsCount++;
+			} else {
+				if (i >= ignoredIterations) {
+					int x = (int)((p.x * 0.5 + 0.5) * width);
+					int y = (int)((p.y * 0.5 + 0.5) * height);
+					solution[x][y]++;
 				}
 			}
 		}
-		System.out.println("Points out of bounds: " + outOfBoundsCount);
-		return output;
+		System.out.format("Points out of bounds: %d (Ratio: %f)\n", outOfBoundsCount, (float)outOfBoundsCount/iterations);
+		return solution;
 	}
 }

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Calendar;
 import java.util.Collections;
 
@@ -38,23 +39,34 @@ public final class Painter {
 	private static Color getBW(double value) {
 		return value > 0 ? Color.white : Color.black;
 	}
-	private static Color getColor(double value) {
+	private static Color getColor(double[] offset, double value) {
+		assert offset.length == 3;
 		if (value == 0) {
 			return Color.black;
 		}
-		int[] rgb = new int[3];
-		for (int i = 0; i < 3; i++) {
-			rgb[i] = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+(double)i/3)) + 1) / 2);
+		int red = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[0])) + 1) / 2);
+		int green = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[1])) + 1) / 2);
+		int blue = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[2])) + 1) / 2);
+		return new Color(red, green, blue);
+	}
+	// TODO implement your own shuffle instead of being lazy
+	private static double[] shuffle(Double[] deck) {
+		List<Double> shuffledObj = Arrays.asList(deck);
+		Collections.shuffle(shuffledObj);
+		double[] shuffledVal = new double[deck.length];
+		for (int i = 0; i < deck.length; i++) {
+			shuffledVal[i] = shuffledObj.get(i).doubleValue();
 		}
-		Collections.shuffle(Arrays.asList(rgb)); // shuffle r, g, and b
-		return new Color(rgb[0], rgb[1], rgb[2]);
+		return shuffledVal;
 	}
 	private static Color[][] colorize(double[][] input) {
 		assert input.length > 0 && input[0].length > 0;
 		Color[][] output = new Color[input.length][input[0].length];
+		double[] offset = shuffle(new Double[]{0.0, 1.0/3, 2.0/3});
+		System.out.format("Color offsets -- R: %f\tG: %f\tB: %f\n", offset[0], offset[1], offset[2]);
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
-				output[i][j] = getColor(input[i][j]);
+				output[i][j] = getColor(offset, input[i][j]);
 			}
 		}
 		return output;
@@ -71,10 +83,11 @@ public final class Painter {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		filename = outputFolder + "/" + filename + "_" + dateFormat.format(Calendar.getInstance().getTime()) + ".png";
 		ImageIO.write(img, "png", new File(filename));
+		System.out.println("Saved image to " + filename);
 		return filename;
 	}
-	public static String paint(int[][] input, String filename) throws IOException {
-		double[][] scaled = scale(input);
+	public static String paint(int[][] solution, String filename) throws IOException {
+		double[][] scaled = scale(solution);
 		Color[][] colorized = colorize(scaled);
 		return saveImage(colorized, filename);
 	}

@@ -18,7 +18,7 @@ public class Main {
         try {
         	String imageName = "Shuffled";
 			imageName = Painter.paint(plot, imageName);
-			Function.record(spgasket, imageName);
+//    			Function.record(spgasket, imageName);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
