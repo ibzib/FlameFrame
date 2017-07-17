@@ -1,4 +1,5 @@
 import java.util.Random;
+import java.awt.geom.Point2D.Double;
 
 public final class ChaosGame {
 	static final int ignoredIterations = 20;
@@ -14,11 +15,11 @@ public final class ChaosGame {
 		Point p = new Point(rand.nextDouble(), rand.nextDouble()); // generate a random starting point
 		int outOfBoundsCount = 0; // count the points that fall out of bounds
 		int[][] solution = new int[width][height];
-		System.out.println("Running chaos game...");
+//		System.out.println("Running chaos game...");
 		for (int i = 0; i < iterations; i++) {
-			if (i % (iterations / 10) == 0) {
-				System.out.println("Iteration " + i);
-			}
+//			if (i % (iterations / 10) == 0) {
+//				System.out.println("Iteration " + i);
+//			}
 			double randf = rand.nextDouble() * weight[weight.length-1]; // choose a random function
 			int f;
 			for (f = 0; f < weight.length; f++) {
@@ -37,7 +38,7 @@ public final class ChaosGame {
 				}
 			}
 		}
-		System.out.format("Points out of bounds: %d (Ratio: %f)\n", outOfBoundsCount, (float)outOfBoundsCount/iterations);
+//		System.out.format("Points out of bounds: %d (Ratio: %f)\n", outOfBoundsCount, (float)outOfBoundsCount/iterations);
 		return solution;
 	}
 }

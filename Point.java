@@ -10,4 +10,8 @@ public class Point {
 	public Point copy() {
 		return new Point(x,y);
 	}
+	public void set(double i, double j) {
+		x = i;
+		y = j;
+	}
 }

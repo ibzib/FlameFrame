@@ -12,6 +12,14 @@ import java.util.Collections;
 import javax.imageio.ImageIO;
 
 public final class Painter {
+	private static double[] colorOffset = {0.0, 1.0/3, 2.0/3};
+	public static void setColorOffset(double[] newOffset) {
+		if (newOffset.length == 3) {
+			colorOffset = newOffset;
+		} else {
+			System.err.println("Failed to set color offsets: array must be of length 3");
+		}
+	}
 	private static final String outputFolder = "images";
 	private static int max(int[][] input) {
 		int max = 0;
@@ -36,42 +44,35 @@ public final class Painter {
 		}
 		return output;
 	}
-	private static Color getBW(double value) {
+	private static Color getBlackAndWhite(double value) {
 		return value > 0 ? Color.white : Color.black;
 	}
-	private static Color getColor(double[] offset, double value) {
-		assert offset.length == 3;
+	private static Color getColor(double value) {
 		if (value == 0) {
 			return Color.black;
 		}
-		int red = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[0])) + 1) / 2);
-		int green = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[1])) + 1) / 2);
-		int blue = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+offset[2])) + 1) / 2);
+		int red = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[0])) + 1) / 2);
+		int green = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[1])) + 1) / 2);
+		int blue = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[2])) + 1) / 2);
 		return new Color(red, green, blue);
-	}
-	// TODO implement your own shuffle instead of being lazy
-	private static double[] shuffle(Double[] deck) {
-		List<Double> shuffledObj = Arrays.asList(deck);
-		Collections.shuffle(shuffledObj);
-		double[] shuffledVal = new double[deck.length];
-		for (int i = 0; i < deck.length; i++) {
-			shuffledVal[i] = shuffledObj.get(i).doubleValue();
-		}
-		return shuffledVal;
 	}
 	private static Color[][] colorize(double[][] input) {
 		assert input.length > 0 && input[0].length > 0;
 		Color[][] output = new Color[input.length][input[0].length];
-		double[] offset = shuffle(new Double[]{0.0, 1.0/3, 2.0/3});
-		System.out.format("Color offsets -- R: %f\tG: %f\tB: %f\n", offset[0], offset[1], offset[2]);
+//		System.out.format("Color offsets -- R: %f\tG: %f\tB: %f\n", colorOffset[0], colorOffset[1], colorOffset[2]);
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
-				output[i][j] = getColor(offset, input[i][j]);
+				output[i][j] = getColor(input[i][j]);
 			}
 		}
 		return output;
 	}
-	private static String saveImage(Color[][] plot, String filename) throws IOException {
+	public static BufferedImage getImage(int[][] solution) {
+		double[][] scaled = scale(solution);
+		Color[][] colorized = colorize(scaled);
+		return makeImage(colorized);
+	}
+	private static BufferedImage makeImage(Color[][] plot) {
 		assert plot.length > 0 && plot[0].length > 0;
 		BufferedImage img = new BufferedImage(plot.length, plot[0].length, BufferedImage.TYPE_INT_ARGB);
 		for (int i = 0; i < plot.length; i++) {
@@ -79,17 +80,16 @@ public final class Painter {
 				img.setRGB(i, j, plot[i][j].getRGB());
 			}
 		}
+		return img;
+	}
+	private static String saveImage(Color[][] plot, String filename) throws IOException {
+		BufferedImage img = makeImage(plot);
 		new File(outputFolder).mkdir();
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		filename = outputFolder + "/" + filename + "_" + dateFormat.format(Calendar.getInstance().getTime()) + ".png";
 		ImageIO.write(img, "png", new File(filename));
 		System.out.println("Saved image to " + filename);
 		return filename;
-	}
-	public static String paint(int[][] solution, String filename) throws IOException {
-		double[][] scaled = scale(solution);
-		Color[][] colorized = colorize(scaled);
-		return saveImage(colorized, filename);
 	}
 	public static void colorTest() {
         double[][] spectrum = new double[500][500];
