@@ -2,7 +2,7 @@ import java.util.Random;
 
 public final class ChaosGame {
 	static final int ignoredIterations = 20;
-	public static int[][] run(Function[] system, int iterations, int width, int height) {
+	public static int[][] run(Function[] system, int iterations, Point origin, double zoom, int width, int height) {
 		assert system.length > 0;
 		assert iterations >= ignoredIterations;
 		double[] weight = new double[system.length];
@@ -25,12 +25,14 @@ public final class ChaosGame {
 				if (randf < weight[f]) break;
 			}
 			p = system[f].transform(p);
-			if (p.x < -1 || p.x > 1 || p.y < -1 || p.y > 1) {
+			double scaledX = zoom * (p.x + origin.x);
+			double scaledY = zoom * (p.y + origin.y);
+			if (scaledX <= 0 || scaledX > 1 || scaledY <= 0 || scaledY > 1) {
 				outOfBoundsCount++;
 			} else {
 				if (i >= ignoredIterations) {
-					int x = (int)((p.x * 0.5 + 0.5) * width);
-					int y = (int)((p.y * 0.5 + 0.5) * height);
+					int x = (int)(scaledX * width);
+					int y = (int)(scaledY * height);
 					solution[x][y]++;
 				}
 			}
