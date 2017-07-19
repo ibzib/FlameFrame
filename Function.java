@@ -26,6 +26,9 @@ public class Function {
 		this(new double[variations.length], new double[paramsRequired], a, w);
 		Arrays.fill(blend, 1.0 / variations.length);
 	}
+	public void setBlend(int index, double value) {
+		blend[index] = value;
+	}
 	public static void record(Function[] system, String imageName) throws FileNotFoundException, UnsupportedEncodingException {
 		String logName = imageName.substring(0, imageName.length()-4) + ".csv"; 
 		PrintWriter writer = new PrintWriter(logName, "UTF-8");

@@ -1,74 +1,62 @@
 import java.awt.Color;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Calendar;
-import java.util.Collections;
+import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 
 public final class Painter {
-	private static double[] colorOffset = {0.0, 1.0/3, 2.0/3};
-	public static void setColorOffset(double[] newOffset) {
-		if (newOffset.length == 3) {
-			colorOffset = newOffset;
-		} else {
-			System.err.println("Failed to set color offsets: array must be of length 3");
-		}
+	public enum ColorScheme {SHERBET, TWO, THREE, FOUR, FIVE, SIX}
+	private static HashMap<ColorScheme, double[]> colOffsets = new HashMap<ColorScheme, double[]>();
+	static {
+		colOffsets.put(ColorScheme.SHERBET, new double[]{0.0, 1.0/3, 2.0/3});
+		colOffsets.put(ColorScheme.TWO, new double[]{0.0, 2.0/3, 1.0/3});
+		colOffsets.put(ColorScheme.THREE, new double[]{1.0/3, 0.0, 2.0/3});
+		colOffsets.put(ColorScheme.FOUR, new double[]{1.0/3, 2.0/3, 0.0});
+		colOffsets.put(ColorScheme.FIVE, new double[]{2.0/3, 0.0, 1.0/3});
+		colOffsets.put(ColorScheme.SIX, new double[]{2.0/3, 1.0/3, 0.0});
+	}
+	private static ColorScheme colorScheme = ColorScheme.SHERBET;
+	public static void setColorOffset(ColorScheme colScheme) {
+		colorScheme = colScheme;
 	}
 	private static final String outputFolder = "images";
-	private static int max(int[][] input) {
-		int max = 0;
-		for (int i = 0; i < input.length; i++) {
-			for (int j = 0; j < input[i].length; j++) {
-				if (input[i][j] > max)
-					max = input[i][j];
-			}
-		}
-		return max;
-	}
-	private static double[][] scale(int[][] input) {
-		assert input.length > 0 && input[0].length > 0;
-		double[][] output = new double[input.length][input[0].length];
-		int max = max(input);
-		double logmax = Math.log(max);
-		for (int i = 0; i < input.length; i++) {
-			for (int j = 0; j < input[i].length; j++) {
-				output[i][j] = input[i][j] == 0 ? 0 : Math.log(input[i][j]) / logmax;
-//				System.out.format("%d -> %f\n", input[i][j], output[i][j]);
-			}
-		}
-		return output;
-	}
 	private static Color getBlackAndWhite(double value) {
 		return value > 0 ? Color.white : Color.black;
 	}
 	private static Color getColor(double value) {
+		assert colOffsets != null;
+		assert colOffsets.containsKey(colorScheme);
+		assert colOffsets.get(colorScheme).length == 3;
 		if (value == 0) {
 			return Color.black;
 		}
-		int red = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[0])) + 1) / 2);
-		int green = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[1])) + 1) / 2);
-		int blue = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colorOffset[2])) + 1) / 2);
+		int red = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colOffsets.get(colorScheme)[0])) + 1) / 2);
+		int green = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colOffsets.get(colorScheme)[1])) + 1) / 2);
+		int blue = (int)(255.0 * (Math.sin(2.0*Math.PI*(value+colOffsets.get(colorScheme)[2])) + 1) / 2);
 		return new Color(red, green, blue);
 	}
 	private static Color[][] colorize(double[][] input) {
+		return colorize(input, false);
+	}
+	private static Color[][] colorize(double[][] input, boolean blackAndWhite) {
 		assert input.length > 0 && input[0].length > 0;
 		Color[][] output = new Color[input.length][input[0].length];
 //		System.out.format("Color offsets -- R: %f\tG: %f\tB: %f\n", colorOffset[0], colorOffset[1], colorOffset[2]);
 		for (int i = 0; i < input.length; i++) {
 			for (int j = 0; j < input[i].length; j++) {
-				output[i][j] = getColor(input[i][j]);
+				output[i][j] = blackAndWhite ? getBlackAndWhite(input[i][j]) : getColor(input[i][j]);
 			}
 		}
 		return output;
 	}
-	public static BufferedImage getImage(int[][] solution) {
-		double[][] scaled = scale(solution);
+	public static BufferedImage getImage(ChaosGame game, boolean colorize) {
+		double[][] scaled = game.getScaledDensities();
 		Color[][] colorized = colorize(scaled);
 		return makeImage(colorized);
 	}
@@ -82,8 +70,7 @@ public final class Painter {
 		}
 		return img;
 	}
-	private static String saveImage(Color[][] plot, String filename) throws IOException {
-		BufferedImage img = makeImage(plot);
+	public static String saveImage(BufferedImage img, String filename) throws IOException {
 		new File(outputFolder).mkdir();
 		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
 		filename = outputFolder + "/" + filename + "_" + dateFormat.format(Calendar.getInstance().getTime()) + ".png";
@@ -99,7 +86,8 @@ public final class Painter {
         	}
         }
         try {
-        	saveImage(colorize(spectrum), "colorTest");
+    		BufferedImage img = makeImage(colorize(spectrum));
+        	saveImage(img, "colorTest");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
