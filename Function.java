@@ -19,12 +19,8 @@ public class Function {
 		params = p;
 		affine = a;
 	}
-	public Function(double[] b, double[] a, double w) {
-		this(b, new double[paramsRequired], a, w);
-	}
 	public Function(double[] a, double w) {
 		this(new double[variations.length], new double[paramsRequired], a, w);
-		Arrays.fill(blend, 1.0 / variations.length);
 	}
 	public void setBlend(int index, double value) {
 		blend[index] = value;
