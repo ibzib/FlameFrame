@@ -3,10 +3,12 @@ import java.awt.Graphics;
 import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-
 import javax.swing.JComponent;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FlameFrame extends JComponent implements MouseWheelListener {
 	private static final long serialVersionUID = 1L;
@@ -14,7 +16,9 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	KeyHandler keyHandler = new KeyHandler();
 	private JFrame jFrame = new JFrame("FlameFrame");
 	private int targetFPS = 15;
-	private boolean isPaused = false;
+	private boolean gamePaused = false;
+	private boolean renderingStopped = false;
+	private boolean isMouseWheelEnabled = true;
 	private double zoom = 0.22;
 	private ChaosGame game;
 	private BufferedImage currentImage;
@@ -28,23 +32,50 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 		FlameFrame app = new FlameFrame();
 		System.out.println("Application exited.");
 	}
-	private void playPause() {
-		isPaused = !isPaused;
-		if (isPaused) {
-			mouseHandler.setEnabled(false);
-			System.out.println("User paused simulation");				
+	private void togglePlayPause() {
+		if (gamePaused) {
+			play();
 		} else {
-			mouseHandler.setEnabled(true);
-			System.out.println("User unpaused simulation");
+			pause();
 		}
+	}
+	private void setInputEnabled(boolean status) {
+		mouseHandler.setEnabled(status);
+		keyHandler.setEnabled(status);
+		isMouseWheelEnabled = status;
+	}
+	private void pause() {
+		gamePaused = true;
+		setInputEnabled(false);
+		System.out.println("Paused simulation");
+	}
+	private void play() {
+		renderingStopped = false;
+		gamePaused = false;
+		setInputEnabled(true);
+		System.out.println("Played simulation");
+	}
+	private void stop() {
+		gamePaused = true;
+		renderingStopped = true;
+		setInputEnabled(false);
+		System.out.println("Stopped simulation");		
 	}
 	private void saveImage() {
 		try {
-			// TODO let user input filename + number of iterations
-			String imageTitle = "Test";
-			System.out.println("Saving image...");
-			String imageFileName = Painter.saveImage(currentImage, imageTitle);
-			Function.record(functionSet, imageFileName);
+			// TODO let user choose image size
+			stop();
+			JFileChooser chooser = new JFileChooser(System.getProperty("user.dir"));
+			chooser.setDialogType(JFileChooser.SAVE_DIALOG);
+			FileNameExtensionFilter filter = new FileNameExtensionFilter("PNG Image", "png");
+			chooser.setFileFilter(filter);
+			chooser.setSelectedFile(new File("fractal.png"));
+			int returnVal = chooser.showSaveDialog(jFrame);
+			if (returnVal == JFileChooser.APPROVE_OPTION) {
+				String imageFileName = Painter.saveImage(currentImage, chooser.getSelectedFile().getName());
+				Function.record(functionSet, imageFileName);
+			}
+			play();
 		} catch (IOException ex) {
 			// TODO report error to user in dialog box
 			ex.printStackTrace();
@@ -86,14 +117,18 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			func.setBlend(0, 1.0);
 //			func.setBlend(1, 0.25);
 //			func.setBlend(2, 0.25);
-			func.setBlend(3, 0.25);
-			func.setBlend(4, 1.0);
+//			func.setBlend(3, 0.25);
+//			func.setBlend(4, 0.25);
+//			func.setBlend(5, 1.0);
+			func.setBlend(6, 1.0);
 		}
 	}
 	public void renderLoop() throws InterruptedException {
 		while (true) {
 			long startTime = System.nanoTime();
-			this.repaint();
+			if (!renderingStopped) {
+				this.repaint();
+			}
 			long timeElapsedMs = (System.nanoTime() - startTime) / 1000;
 			long sleepTime = 1000 / targetFPS - timeElapsedMs;
 			if (sleepTime > 0) {
@@ -124,12 +159,12 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	}
 	public void paintComponent(Graphics g) {
 		pollKeys();
-		if (!isPaused) {
+		if (!gamePaused) {
 			iterateChaos(lowIterations);
 		}
 		updateImage();
 		g.drawImage(currentImage, 0, 0, null);
-		if (isPaused) {
+		if (gamePaused) {
 			g.setColor(Color.white);
 			g.drawString("Paused", 15, 15);
 		}
@@ -146,13 +181,13 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			}
 			// other commands
 			if (keyHandler.wasKeyReleased(' ')) {
-				playPause();
-			} else if (keyHandler.wasKeyReleased('\n')) {
-				System.out.println(game.toString());
-				iterateChaos(highIterations);
-				System.out.println(game.toString());
-				updateImage();
+				togglePlayPause();
+			} else if (keyHandler.wasKeyReleased('s')) {
 				saveImage();
+			} else if (keyHandler.wasKeyReleased('a')) {
+				System.out.println(game);
+				iterateChaos(highIterations);
+				System.out.println(game);
 			} else if (keyHandler.wasKeyReleased('\b')) {
 				resetGame();
 			} else if (keyHandler.wasKeyReleased('q')) {
@@ -163,6 +198,8 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	}
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent e) {
-		zoom += 0.01 * e.getWheelRotation();
+		if (isMouseWheelEnabled) {
+			zoom += 0.01 * e.getWheelRotation();
+		}
 	}
 }
