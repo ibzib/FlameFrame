@@ -4,6 +4,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 
@@ -25,6 +26,7 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	public static void main(String[] args) {
 //      Painter.colorTest();
 		FlameFrame app = new FlameFrame();
+		System.out.println("Application exited.");
 	}
 	private void playPause() {
 		isPaused = !isPaused;
@@ -82,8 +84,8 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 				};
 		for (Function func : functionSet) {
 			func.setBlend(0, 1.0);
-			func.setBlend(1, 0.25);
-			func.setBlend(2, 0.25);
+//			func.setBlend(1, 0.25);
+//			func.setBlend(2, 0.25);
 			func.setBlend(3, 1.0);
 		}
 	}

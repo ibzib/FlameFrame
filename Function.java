@@ -1,7 +1,6 @@
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
 
 // represents one function in an IFS
 public class Function {
@@ -78,7 +77,7 @@ public class Function {
 	}
 	private Point applyVariation(Variation variation, Point p) {
 		Point transformed = applyAffine(p);
-		return variation.fn(params, affine, transformed);
+		return variation.getTransform().fn(params, affine, transformed);
 	}
 	public Point transform(Point p) {
 		Point res = new Point(0, 0);
@@ -90,18 +89,18 @@ public class Function {
 	public static final int paramsRequired = 0;
 	public static int variationsCount() { return variations.length; }
 	public static final Variation[] variations = {
-		// 0 linear
-		(params, affine, point) -> new Point(point.x, point.y),
-		// 1 sinusoidal
-		(params, affine, point) -> new Point(Math.sin(point.x), Math.sin(point.y)),
-		// 2 spherical
-		(params, affine, point) -> scale(radius(point), point),
-		// 3 swirl
-		(params, affine, point) -> {
-			double r = radius(point);
-			double x = point.x * Math.sin(r*r) - point.y * Math.cos(r*r);
-			double y = point.x * Math.cos(r*r) - point.y * Math.sin(r*r);
-			return new Point(x, y);
-		}
+		new Variation("Linear", 
+				(params, affine, point) -> new Point(point.x, point.y)),
+		new Variation("Sinusoidal", 
+				(params, affine, point) -> new Point(Math.sin(point.x), Math.sin(point.y))),
+		new Variation("Spherical", 
+				(params, affine, point) -> scale(radius(point), point)),
+		new Variation("Swirl", 
+				(params, affine, point) -> {
+					double r = radius(point);
+					double x = point.x * Math.sin(r*r) - point.y * Math.cos(r*r);
+					double y = point.x * Math.cos(r*r) - point.y * Math.sin(r*r);
+					return new Point(x, y);
+				})
 	};
 }

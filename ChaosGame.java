@@ -1,11 +1,8 @@
 import java.util.Random;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public final class ChaosGame {
 	private static final int ignoredIterations = 20;
 	public long iterationsRun = 0;
-	private int outOfBoundsCount = 0;
-	private long nonOriginCount = 0;
 	public long[][] densityCounts;
 	public ChaosGame(int width, int height) {
 		resize(width, height);
@@ -14,8 +11,6 @@ public final class ChaosGame {
 		assert width > 0 && height > 0;
 		densityCounts = new long[width][height];
 		iterationsRun = 0;
-		outOfBoundsCount = 0;
-		nonOriginCount = 0;
 	}
 	public int getWidth() {
 		return densityCounts.length;
@@ -40,7 +35,11 @@ public final class ChaosGame {
 				}
 			}
 		}
-		return String.format("Dimensions: %d*%d, Total Iterations: %d, White/Black: %d/%d, Max density: %d @ (%d, %d), Out of bounds: %d, Non-origin: %d\n", 
+		return String.format(
+				"Dimensions: %d*%d, "
+				+ "Total Iterations: %d, "
+				+ "White:Black %d:%d, "
+				+ "Max density: %d @ (%d, %d)\n",
 				getWidth(),
 				getHeight(),
 				iterationsRun,
@@ -48,9 +47,7 @@ public final class ChaosGame {
 				getWidth()*getHeight() - nonZeroCount,
 				max, 
 				maxX, 
-				maxY, 
-				outOfBoundsCount,
-				nonOriginCount);
+				maxY);
 	}
 	public long getMaxDensity() {
 		long max = 0;
@@ -85,13 +82,8 @@ public final class ChaosGame {
 		}
 		Random rand = new Random();
 		Point p = new Point(rand.nextDouble(), rand.nextDouble()); // generate a random starting point
-		outOfBoundsCount = 0; // count the points that fall out of bounds
-		nonOriginCount = 0;
 //		System.out.println("Running chaos game...");
 		for (int i = 0; i < iterations; i++) {
-//			if (i % (iterations / 10) == 0) {
-//				System.out.println("Iteration " + i);
-//			}
 			double randf = rand.nextDouble() * weight[weight.length-1]; // choose a random function
 			int f;
 			for (f = 0; f < weight.length; f++) {
@@ -100,23 +92,19 @@ public final class ChaosGame {
 			p = system[f].transform(p);
 			double scaledX = zoom * (p.x + origin.x);
 			double scaledY = zoom * (p.y + origin.y);
-			if (rand.nextInt() % 1000 == 0) {
-				System.out.format("P = (%f, %f)\tO = (%f, %f)\n", p.x, p.y, origin.x, origin.y);
-			}
+//			if (rand.nextInt() % 1000 == 0) {
+//				System.out.format("P = (%f, %f)\tO = (%f, %f)\n", p.x, p.y, origin.x, origin.y);
+//			}
 			if (scaledX <= 0 || scaledX > 1 || scaledY <= 0 || scaledY > 1) {
-				outOfBoundsCount++;
+				// out of bounds
 			} else {
 				if (iterationsRun >= ignoredIterations) {
 					int x = (int)(scaledX * getWidth());
 					int y = (int)(scaledY * getHeight());
 					densityCounts[x][y]++;
-					if (x > 0 && y > 0) {
-						nonOriginCount++;
-					}
 				}
 			}
 			iterationsRun++;
 		}
-//		System.out.format("Points out of bounds: %d (Ratio: %f)\n", outOfBoundsCount, (float)outOfBoundsCount/iterations);
 	}
 }
