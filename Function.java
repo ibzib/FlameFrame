@@ -25,7 +25,7 @@ public class Function {
 		blend[index] = value;
 	}
 	public static void record(Function[] system, String imageName) throws FileNotFoundException, UnsupportedEncodingException {
-		String logName = imageName.substring(0, imageName.length()-4) + ".csv"; 
+		String logName = imageName + ".csv";
 		PrintWriter writer = new PrintWriter(logName, "UTF-8");
 		writer.println(imageName);
 		writer.format("Function,");
@@ -39,7 +39,7 @@ public class Function {
 		}
 		writer.println();
 		for (int b = 0; b < variations.length; b++) {
-			writer.format("Blend %d,", b);
+			writer.format("Blend %d (%s),", b, variations[b].getName());
 			for (int f = 0; f < system.length; f++) {
 				writer.format("%f,", system[f].blend[b]);
 			}
@@ -59,6 +59,7 @@ public class Function {
 			}
 			writer.println();
 		}
+		System.out.println("Recorded function info in " + logName);
 		writer.close();
 	}
 	static Point add(Point a, Point b) {
@@ -101,6 +102,12 @@ public class Function {
 					double x = point.x * Math.sin(r*r) - point.y * Math.cos(r*r);
 					double y = point.x * Math.cos(r*r) - point.y * Math.sin(r*r);
 					return new Point(x, y);
+				}),
+		new Variation("Horseshoe",
+				(params, affine, point) -> {
+					double x = point.x;
+					double y = point.y;
+					return scale(1/radius(point), new Point((x-y)*(x+y), 2*x*y));
 				})
 	};
 }

@@ -41,10 +41,10 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	private void saveImage() {
 		try {
 			// TODO let user input filename + number of iterations
-			String imageName = "Test";
+			String imageTitle = "Test";
 			System.out.println("Saving image...");
-			Painter.saveImage(currentImage, imageName);
-			Function.record(functionSet, imageName);
+			String imageFileName = Painter.saveImage(currentImage, imageTitle);
+			Function.record(functionSet, imageFileName);
 		} catch (IOException ex) {
 			// TODO report error to user in dialog box
 			ex.printStackTrace();
@@ -86,7 +86,8 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			func.setBlend(0, 1.0);
 //			func.setBlend(1, 0.25);
 //			func.setBlend(2, 0.25);
-			func.setBlend(3, 1.0);
+			func.setBlend(3, 0.25);
+			func.setBlend(4, 1.0);
 		}
 	}
 	public void renderLoop() throws InterruptedException {
