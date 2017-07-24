@@ -22,13 +22,7 @@ public final class Painter {
 		colOffsets.put(ColorScheme.BLACK_AND_WHITE, new double[]{0, 0, 0.0});
 	}
 	private static ColorScheme colorScheme = ColorScheme.BLACK_AND_WHITE;
-	private static boolean boldPoints = true;
-	public static void toggleBold() {
-		boldPoints = !boldPoints;
-	}
-	public static void setBold(boolean status) {
-		boldPoints = status;
-	}
+	public static boolean boldPoints = true;
 	public static void setColorOffset(ColorScheme colScheme) {
 		colorScheme = colScheme;
 	}

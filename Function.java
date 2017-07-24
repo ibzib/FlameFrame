@@ -71,6 +71,12 @@ public class Function {
 	private static double radius(Point p) {
 		return Math.sqrt(p.x * p.x + p.y * p.y);
 	}
+	private static double theta(Point p) {
+		return Math.atan(p.x / p.y);
+	}
+	private static double phi(Point p) {
+		return Math.atan(p.y / p.x);
+	}
 	private Point applyAffine(Point p) {
 		double x = affine[0] * p.x + affine[1] * p.y + affine[2];
 		double y = affine[3] * p.x + affine[4] * p.y + affine[5];
@@ -91,23 +97,35 @@ public class Function {
 	public static int variationsCount() { return variations.length; }
 	public static final Variation[] variations = {
 		new Variation("Linear", 
-				(params, affine, point) -> new Point(point.x, point.y)),
+				(params, affine, p) -> new Point(p.x, p.y)),
 		new Variation("Sinusoidal", 
-				(params, affine, point) -> new Point(Math.sin(point.x), Math.sin(point.y))),
+				(params, affine, p) -> new Point(Math.sin(p.x), Math.sin(p.y))),
 		new Variation("Spherical", 
-				(params, affine, point) -> scale(radius(point), point)),
+				(params, affine, p) -> scale(radius(p), p)),
 		new Variation("Swirl", 
-				(params, affine, point) -> {
-					double r = radius(point);
-					double x = point.x * Math.sin(r*r) - point.y * Math.cos(r*r);
-					double y = point.x * Math.cos(r*r) - point.y * Math.sin(r*r);
+				(params, affine, p) -> {
+					double r = radius(p);
+					double x = p.x * Math.sin(r*r) - p.y * Math.cos(r*r);
+					double y = p.x * Math.cos(r*r) - p.y * Math.sin(r*r);
 					return new Point(x, y);
 				}),
 		new Variation("Horseshoe",
-				(params, affine, point) -> {
-					double x = point.x;
-					double y = point.y;
-					return scale(1/radius(point), new Point((x-y)*(x+y), 2*x*y));
+				(params, affine, p) -> {
+					return scale(1/radius(p), new Point((p.x-p.y)*(p.x+p.y), 2*p.x*p.y));
+				}),
+		new Variation("Polar",
+				(params, affine, p) -> new Point(theta(p) / Math.PI, radius(p) - 1)),
+		new Variation("Handkerchief",
+				(params, affine, p) -> {
+					double r = radius(p);
+					double t = theta(p);
+					return scale(r, new Point(Math.sin(t + r), Math.cos(t - r)));
+				}),
+		new Variation("Heart",
+				(params, affine, p) -> {
+					double r = radius(p);
+					double t = theta(p); 
+					return scale(r, new Point(Math.sin(t * r), -1*Math.cos(t * r)));
 				})
 	};
 }

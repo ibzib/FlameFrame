@@ -1,35 +1,45 @@
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.event.MouseWheelEvent;
-import java.awt.event.MouseWheelListener;
+import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.KeyStroke;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class FlameFrame extends JComponent implements MouseWheelListener {
+public class FlameFrame extends JComponent {
 	private static final long serialVersionUID = 1L;
 	MouseHandler mouseHandler = new MouseHandler();
-	KeyHandler keyHandler = new KeyHandler();
-	private JFrame jFrame = new JFrame("FlameFrame");
+	private JFrame frame = new JFrame("FlameFrame");
+	private JMenuBar menuBar = new JMenuBar();
+	private JMenuItem playPauseMenuItem;
+	private JMenuItem boldMenuItem;
 	private int targetFPS = 15;
 	private boolean gamePaused = false;
 	private boolean renderingStopped = false;
-	private boolean isMouseWheelEnabled = true;
-	private double zoom = 0.22;
 	private ChaosGame game;
 	private BufferedImage currentImage;
 	private int lowIterations = 1000;
 	private int highIterations = 10000000;
 	private Function[] functionSet;
-	private double previousZoom = zoom;
-	private java.awt.Point previousOrigin = new java.awt.Point(0, 0);
+	private double previousZoom;
+	private Point previousScroll = new Point(0, 0);
 	public static void main(String[] args) {
-//      Painter.colorTest();
+		System.setProperty("apple.laf.useScreenMenuBar", "true");
 		FlameFrame app = new FlameFrame();
+		try {
+			app.renderLoop();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		System.out.println("Application exited.");
 	}
 	private void togglePlayPause() {
@@ -41,25 +51,23 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	}
 	private void setInputEnabled(boolean status) {
 		mouseHandler.setEnabled(status);
-		keyHandler.setEnabled(status);
-		isMouseWheelEnabled = status;
 	}
 	private void pause() {
 		gamePaused = true;
 		setInputEnabled(false);
+		playPauseMenuItem.setText("Play");
 		System.out.println("Paused simulation");
 	}
 	private void play() {
 		renderingStopped = false;
 		gamePaused = false;
 		setInputEnabled(true);
+		playPauseMenuItem.setText("Pause");
 		System.out.println("Played simulation");
 	}
 	private void stop() {
-		gamePaused = true;
+		pause();
 		renderingStopped = true;
-		setInputEnabled(false);
-		System.out.println("Stopped simulation");		
 	}
 	private void saveImage() {
 		try {
@@ -70,7 +78,7 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			FileNameExtensionFilter filter = new FileNameExtensionFilter("PNG Image", "png");
 			chooser.setFileFilter(filter);
 			chooser.setSelectedFile(new File("fractal.png"));
-			int returnVal = chooser.showSaveDialog(jFrame);
+			int returnVal = chooser.showSaveDialog(frame);
 			if (returnVal == JFileChooser.APPROVE_OPTION) {
 				String imageFileName = Painter.saveImage(currentImage, chooser.getSelectedFile().getName());
 				Function.record(functionSet, imageFileName);
@@ -83,31 +91,113 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 	}
 	private void resetGame() {
 //		System.out.println("Clearing points");
-		game.resize(jFrame.getWidth(), jFrame.getHeight());
+		game.resize(frame.getWidth(), frame.getHeight());
+	}
+	private void toggleBold() {
+		Painter.boldPoints = !Painter.boldPoints;
+		if (Painter.boldPoints) {
+			boldMenuItem.setText("Unbold");
+		} else {
+			boldMenuItem.setText("Bold");
+		}
 	}
 	public FlameFrame() {
-		setDoubleBuffered(true);
-		setUpFrame();
 		initialize();
-		try {
-			renderLoop();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		setDoubleBuffered(true);
+		setUpMenuBar();
+		setUpFrame();
 	}
 	private void setUpFrame() {
 //		frame.pack();
-		jFrame.getContentPane().add(this);
-		jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		jFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-		jFrame.setVisible(true);
-		jFrame.addKeyListener(keyHandler);
-		jFrame.addMouseListener(mouseHandler);
-		jFrame.addMouseMotionListener(mouseHandler);
-		jFrame.addMouseWheelListener(this);
+		previousZoom = mouseHandler.getZoom();
+		frame.getContentPane().add(this);
+		frame.setJMenuBar(menuBar);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+		frame.addMouseListener(mouseHandler);
+		frame.addMouseMotionListener(mouseHandler);
+		frame.addMouseWheelListener(mouseHandler);
+		frame.setVisible(true);
+	}
+	private void setUpMenuBar() {
+		//////////////
+		// File menu
+		//////////////
+		JMenu fileMenu = new JMenu("File");
+		JMenuItem saveMenuItem = new JMenuItem("Save");
+		saveMenuItem.addActionListener((ActionEvent e) -> {
+			saveImage();
+		});
+		saveMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, 
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		fileMenu.add(saveMenuItem);
+		menuBar.add(fileMenu);
+		
+		////////////////////
+		// Appearance menu
+		////////////////////
+		JMenu appearanceMenu = new JMenu("Appearance");
+		
+		JMenuItem blackAndWhiteMenuItem = new JMenuItem("Black and White");
+		blackAndWhiteMenuItem.addActionListener((ActionEvent e) -> {
+			Painter.setColorOffset(Painter.ColorScheme.BLACK_AND_WHITE);	
+		});
+		blackAndWhiteMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_0, 
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		appearanceMenu.add(blackAndWhiteMenuItem);
+		
+		JMenuItem sherbetMenuItem = new JMenuItem("Color Scheme 1");
+		sherbetMenuItem.addActionListener((ActionEvent e) -> {
+			Painter.setColorOffset(Painter.ColorScheme.SHERBET);	
+		});
+		sherbetMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		appearanceMenu.add(sherbetMenuItem);
+		
+		JMenuItem inverseSherbetMenuItem = new JMenuItem("Color Scheme 2");
+		inverseSherbetMenuItem.addActionListener((ActionEvent e) -> {
+			Painter.setColorOffset(Painter.ColorScheme.INVERSE_SHERBET);	
+		});
+		inverseSherbetMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_2, 
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		appearanceMenu.add(inverseSherbetMenuItem);
+		
+		boldMenuItem = new JMenuItem("Toggle Bold");
+		boldMenuItem.addActionListener((ActionEvent e) -> {
+			toggleBold();
+		});
+		boldMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, 
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		appearanceMenu.add(boldMenuItem);
+		
+		menuBar.add(appearanceMenu);
+		
+		//////////////
+		// View menu
+		//////////////
+		JMenu viewMenu = new JMenu("View");
+		
+		playPauseMenuItem = new JMenuItem("Pause");
+		playPauseMenuItem.addActionListener((ActionEvent e) -> {
+			togglePlayPause();
+		});
+		playPauseMenuItem.setAccelerator(KeyStroke.getKeyStroke(' '));
+		viewMenu.add(playPauseMenuItem);
+		
+		JMenuItem clearMenuItem = new JMenuItem("Refresh Screen");
+		clearMenuItem.addActionListener((ActionEvent e) -> {
+			resetGame();
+		});
+		clearMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, 
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		viewMenu.add(clearMenuItem);
+		
+		// TODO zoom in/out menu item
+		
+		menuBar.add(viewMenu);
 	}
 	private void initialize() {
-		game = new ChaosGame(jFrame.getWidth(), jFrame.getHeight());
+		game = new ChaosGame(frame.getWidth(), frame.getHeight());
 		functionSet = new Function[]{
 				new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
 				new Function(new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
@@ -117,10 +207,10 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			func.setBlend(0, 1.0);
 //			func.setBlend(1, 0.25);
 //			func.setBlend(2, 0.25);
-//			func.setBlend(3, 0.25);
+			func.setBlend(3, 1.0);
 //			func.setBlend(4, 0.25);
 //			func.setBlend(5, 1.0);
-			func.setBlend(6, 1.0);
+//			func.setBlend(6, 1.0);
 		}
 	}
 	public void renderLoop() throws InterruptedException {
@@ -136,29 +226,29 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 			}
 		}
 	}
-	private static boolean testEquality(java.awt.Point a, java.awt.Point b) {
+	private static boolean testEquality(Point a, Point b) {
 		return a.x == b.x && a.y == b.y;
 	}
 	private void iterateChaos(int iterations) {
-		java.awt.Point absOrigin = mouseHandler.getOrigin();
+		Point scroll = mouseHandler.getOrigin();
+		double zoom = mouseHandler.getZoom();
+		boolean clearedScreen = false;
 		if (zoom != previousZoom ||
-			!testEquality(absOrigin, previousOrigin) ||
-			game.getWidth() != jFrame.getWidth() ||
-			game.getHeight() != jFrame.getHeight()) {
+			!testEquality(scroll, previousScroll) ||
+			game.getWidth() != frame.getWidth() ||
+			game.getHeight() != frame.getHeight()) {
 			resetGame();
+			clearedScreen = true;
 		}
 		previousZoom = zoom;
-		previousOrigin = new java.awt.Point(absOrigin.x, absOrigin.y);
-		// scale origin by frame dimensions
-		Point scaledOrigin = new Point((double)absOrigin.x / jFrame.getWidth(), (double)absOrigin.y / jFrame.getHeight());
-		game.run(functionSet, iterations, scaledOrigin, zoom);
+		previousScroll = new Point(scroll.x, scroll.y);
+		if (clearedScreen) iterations *= 10;
+		game.iterate(functionSet, iterations, previousScroll, zoom);
 	}
 	private void updateImage() {
-//		System.out.println("Updating image");
 		currentImage = Painter.getImage(game);
 	}
 	public void paintComponent(Graphics g) {
-		pollKeys();
 		if (!gamePaused) {
 			iterateChaos(lowIterations);
 		}
@@ -167,39 +257,6 @@ public class FlameFrame extends JComponent implements MouseWheelListener {
 		if (gamePaused) {
 			g.setColor(Color.white);
 			g.drawString("Paused", 15, 15);
-		}
-	}
-	private void pollKeys() {
-		if (keyHandler.wasAnyKeyReleased()) {
-			// color controls
-			if (keyHandler.wasKeyReleased('1')) {
-				Painter.setColorOffset(Painter.ColorScheme.BLACK_AND_WHITE);
-			} else if (keyHandler.wasKeyReleased('2')) {
-				Painter.setColorOffset(Painter.ColorScheme.SHERBET);
-			} else if (keyHandler.wasKeyReleased('3')) {
-				Painter.setColorOffset(Painter.ColorScheme.INVERSE_SHERBET);
-			}
-			// other commands
-			if (keyHandler.wasKeyReleased(' ')) {
-				togglePlayPause();
-			} else if (keyHandler.wasKeyReleased('s')) {
-				saveImage();
-			} else if (keyHandler.wasKeyReleased('a')) {
-				System.out.println(game);
-				iterateChaos(highIterations);
-				System.out.println(game);
-			} else if (keyHandler.wasKeyReleased('\b')) {
-				resetGame();
-			} else if (keyHandler.wasKeyReleased('q')) {
-				Painter.toggleBold();
-			}
-			keyHandler.clear();
-		}
-	}
-	@Override
-	public void mouseWheelMoved(MouseWheelEvent e) {
-		if (isMouseWheelEnabled) {
-			zoom += 0.01 * e.getWheelRotation();
 		}
 	}
 }

@@ -2,13 +2,16 @@ import java.util.Random;
 
 public final class ChaosGame {
 	private static final int ignoredIterations = 20;
-	public long iterationsRun = 0;
-	public long[][] densityCounts;
+	private long iterationsRun = 0;
+	private long[][] densityCounts;
+	private Point p;
 	public ChaosGame(int width, int height) {
 		resize(width, height);
 	}
 	public void resize(int width, int height) {
 		assert width > 0 && height > 0;
+		Random rand = new Random();
+		p = new Point(rand.nextDouble(), rand.nextDouble());
 		densityCounts = new long[width][height];
 		iterationsRun = 0;
 	}
@@ -72,7 +75,7 @@ public final class ChaosGame {
 		}
 		return output;
 	}
-	public void run(Function[] system, int iterations, Point origin, double zoom) {
+	public void iterate(Function[] system, int numberOfIterations, Point scroll, double zoom) {
 		assert system.length > 0;
 		// TODO move weight logic into Function class
 		double[] weight = new double[system.length];
@@ -81,28 +84,23 @@ public final class ChaosGame {
 			weight[w] = system[w].getWeight() + weight[w-1];
 		}
 		Random rand = new Random();
-		Point p = new Point(rand.nextDouble(), rand.nextDouble()); // generate a random starting point
-//		System.out.println("Running chaos game...");
-		for (int i = 0; i < iterations; i++) {
+		int outOfBounds = 0;
+		for (int i = 0; i < numberOfIterations; i++) {
 			double randf = rand.nextDouble() * weight[weight.length-1]; // choose a random function
 			int f;
 			for (f = 0; f < weight.length; f++) {
 				if (randf < weight[f]) break;
 			}
 			p = system[f].transform(p);
-			double scaledX = zoom * (p.x + origin.x);
-			double scaledY = zoom * (p.y + origin.y);
-//			if (rand.nextInt() % 1000 == 0) {
-//				System.out.format("P = (%f, %f)\tO = (%f, %f)\n", p.x, p.y, origin.x, origin.y);
-//			}
-			if (scaledX <= 0 || scaledX > 1 || scaledY <= 0 || scaledY > 1) {
-				// out of bounds
-			} else {
-				if (iterationsRun >= ignoredIterations) {
-					int x = (int)(scaledX * getWidth());
-					int y = (int)(scaledY * getHeight());
-					densityCounts[x][y]++;
-				}
+			int pixelX = (int)(zoom * p.x - scroll.x);
+			int pixelY = (int)(zoom * p.y - scroll.y);
+			if (rand.nextInt() % 1000 == 0) {
+//				System.out.format("P = (%d, %d)\n", pixelX, pixelY);
+			}
+			if (pixelY < 0 || pixelX >= getWidth() || pixelY >= getHeight() || pixelX < 0) {
+				outOfBounds++;
+			} else if (iterationsRun >= ignoredIterations) {
+				densityCounts[pixelX][pixelY]++;
 			}
 			iterationsRun++;
 		}
