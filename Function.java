@@ -62,34 +62,19 @@ public class Function {
 		System.out.println("Recorded function info in " + logName);
 		writer.close();
 	}
-	static Point add(Point a, Point b) {
-		return new Point(a.x + b.x, a.y + b.y);
-	}
-	static Point scale(double scalar, Point p) {
-		return new Point(scalar * p.x, scalar * p.y);
-	}
-	private static double radius(Point p) {
-		return Math.sqrt(p.x * p.x + p.y * p.y);
-	}
-	private static double theta(Point p) {
-		return Math.atan(p.x / p.y);
-	}
-	private static double phi(Point p) {
-		return Math.atan(p.y / p.x);
-	}
-	private Point applyAffine(Point p) {
+	private Position applyAffine(Position p) {
 		double x = affine[0] * p.x + affine[1] * p.y + affine[2];
 		double y = affine[3] * p.x + affine[4] * p.y + affine[5];
-		return new Point(x, y);
+		return new Position(x, y);
 	}
-	private Point applyVariation(Variation variation, Point p) {
-		Point transformed = applyAffine(p);
+	private Position applyVariation(Variation variation, Position p) {
+		Position transformed = applyAffine(p);
 		return variation.getTransform().fn(params, affine, transformed);
 	}
-	public Point transform(Point p) {
-		Point res = new Point(0, 0);
+	public Position transform(Position p) {
+		Position res = new Position(0, 0);
 		for (int v = 0; v < variations.length; v++) {
-			res = add(res, scale(blend[v], applyVariation(variations[v], p)));
+			res = res.getSum(applyVariation(variations[v], p).getScale(blend[v]));
 		}
 		return res;
 	}
@@ -97,35 +82,35 @@ public class Function {
 	public static int variationsCount() { return variations.length; }
 	public static final Variation[] variations = {
 		new Variation("Linear", 
-				(params, affine, p) -> new Point(p.x, p.y)),
+				(params, affine, p) -> new Position(p.x, p.y)),
 		new Variation("Sinusoidal", 
-				(params, affine, p) -> new Point(Math.sin(p.x), Math.sin(p.y))),
+				(params, affine, p) -> new Position(Math.sin(p.x), Math.sin(p.y))),
 		new Variation("Spherical", 
-				(params, affine, p) -> scale(radius(p), p)),
+				(params, affine, p) -> p.getScale(p.radius())),
 		new Variation("Swirl", 
 				(params, affine, p) -> {
-					double r = radius(p);
+					double r = p.radius();
 					double x = p.x * Math.sin(r*r) - p.y * Math.cos(r*r);
 					double y = p.x * Math.cos(r*r) - p.y * Math.sin(r*r);
-					return new Point(x, y);
+					return new Position(x, y);
 				}),
 		new Variation("Horseshoe",
 				(params, affine, p) -> {
-					return scale(1/radius(p), new Point((p.x-p.y)*(p.x+p.y), 2*p.x*p.y));
+					return new Position((p.x-p.y)*(p.x+p.y), 2*p.x*p.y).getScale(1/p.radius());
 				}),
 		new Variation("Polar",
-				(params, affine, p) -> new Point(theta(p) / Math.PI, radius(p) - 1)),
+				(params, affine, p) -> new Position(p.theta() / Math.PI, p.radius() - 1)),
 		new Variation("Handkerchief",
 				(params, affine, p) -> {
-					double r = radius(p);
-					double t = theta(p);
-					return scale(r, new Point(Math.sin(t + r), Math.cos(t - r)));
+					double r = p.radius();
+					double t = p.theta();
+					return new Position(Math.sin(t + r), Math.cos(t - r)).getScale(r);
 				}),
 		new Variation("Heart",
 				(params, affine, p) -> {
-					double r = radius(p);
-					double t = theta(p); 
-					return scale(r, new Point(Math.sin(t * r), -1*Math.cos(t * r)));
+					double r = p.radius();
+					double t = p.theta();
+					return new Position(Math.sin(t * r), -1*Math.cos(t * r)).getScale(r);
 				})
 	};
 }

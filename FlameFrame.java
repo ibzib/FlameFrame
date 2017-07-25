@@ -17,21 +17,20 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FlameFrame extends JComponent {
 	private static final long serialVersionUID = 1L;
-	MouseHandler mouseHandler = new MouseHandler();
 	private JFrame frame = new JFrame("FlameFrame");
+	ViewManager viewManager = new ViewManager();
 	private JMenuBar menuBar = new JMenuBar();
 	private JMenuItem playPauseMenuItem;
 	private JMenuItem boldMenuItem;
 	private int targetFPS = 15;
-	private boolean gamePaused = false;
+	private boolean iterationPaused = false;
 	private boolean renderingStopped = false;
 	private ChaosGame game;
 	private BufferedImage currentImage;
 	private int lowIterations = 1000;
 	private int highIterations = 10000000;
 	private Function[] functionSet;
-	private double previousZoom;
-	private Point previousScroll = new Point(0, 0);
+	private Position previousScroll = new Position(0, 0);
 	public static void main(String[] args) {
 		System.setProperty("apple.laf.useScreenMenuBar", "true");
 		FlameFrame app = new FlameFrame();
@@ -43,29 +42,29 @@ public class FlameFrame extends JComponent {
 		System.out.println("Application exited.");
 	}
 	private void togglePlayPause() {
-		if (gamePaused) {
+		if (iterationPaused) {
 			play();
 		} else {
 			pause();
 		}
 	}
 	private void setInputEnabled(boolean status) {
-		mouseHandler.setEnabled(status);
+		viewManager.setEnabled(status);
 	}
 	private void pause() {
-		gamePaused = true;
-		setInputEnabled(false);
+		iterationPaused = true;
 		playPauseMenuItem.setText("Play");
 		System.out.println("Paused simulation");
 	}
 	private void play() {
 		renderingStopped = false;
-		gamePaused = false;
+		iterationPaused = false;
 		setInputEnabled(true);
 		playPauseMenuItem.setText("Pause");
 		System.out.println("Played simulation");
 	}
 	private void stop() {
+		setInputEnabled(false);
 		pause();
 		renderingStopped = true;
 	}
@@ -89,9 +88,9 @@ public class FlameFrame extends JComponent {
 			ex.printStackTrace();
 		}
 	}
-	private void resetGame() {
+	private void clearScreen() {
 //		System.out.println("Clearing points");
-		game.resize(frame.getWidth(), frame.getHeight());
+		game.resize(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
 	}
 	private void toggleBold() {
 		Painter.boldPoints = !Painter.boldPoints;
@@ -109,14 +108,14 @@ public class FlameFrame extends JComponent {
 	}
 	private void setUpFrame() {
 //		frame.pack();
-		previousZoom = mouseHandler.getZoom();
 		frame.getContentPane().add(this);
 		frame.setJMenuBar(menuBar);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-		frame.addMouseListener(mouseHandler);
-		frame.addMouseMotionListener(mouseHandler);
-		frame.addMouseWheelListener(mouseHandler);
+		viewManager.setParent(frame.getContentPane());
+		frame.getContentPane().addMouseListener(viewManager);
+		frame.getContentPane().addMouseMotionListener(viewManager);
+		frame.getContentPane().addMouseWheelListener(viewManager);
 		frame.setVisible(true);
 	}
 	private void setUpMenuBar() {
@@ -171,33 +170,77 @@ public class FlameFrame extends JComponent {
 		appearanceMenu.add(boldMenuItem);
 		
 		menuBar.add(appearanceMenu);
-		
-		//////////////
-		// View menu
-		//////////////
-		JMenu viewMenu = new JMenu("View");
+
+		///////////////////
+		// iteration menu
+		///////////////////
+		JMenu iterationMenu = new JMenu("Iterate");
 		
 		playPauseMenuItem = new JMenuItem("Pause");
 		playPauseMenuItem.addActionListener((ActionEvent e) -> {
 			togglePlayPause();
 		});
 		playPauseMenuItem.setAccelerator(KeyStroke.getKeyStroke(' '));
-		viewMenu.add(playPauseMenuItem);
+		iterationMenu.add(playPauseMenuItem);
 		
-		JMenuItem clearMenuItem = new JMenuItem("Refresh Screen");
+		JMenuItem clearMenuItem = new JMenuItem("Clear Iteration");
 		clearMenuItem.addActionListener((ActionEvent e) -> {
-			resetGame();
+			clearScreen();
 		});
 		clearMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, 
                 Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		viewMenu.add(clearMenuItem);
+		iterationMenu.add(clearMenuItem);
 		
-		// TODO zoom in/out menu item
+		JMenuItem addIterationsMenuItem = new JMenuItem(String.format("Run %d Iterations", highIterations));
+		addIterationsMenuItem.addActionListener((ActionEvent e) -> {
+			iterate(highIterations);
+		});
+		addIterationsMenuItem.setAccelerator(KeyStroke.getKeyStroke('\n'));
+		iterationMenu.add(addIterationsMenuItem);
+		menuBar.add(iterationMenu);
 		
+		//////////////
+		// View menu
+		//////////////
+		JMenu viewMenu = new JMenu("View");
+		
+		JMenuItem zoomInMenuItem = new JMenuItem("Zoom In");
+		zoomInMenuItem.addActionListener((ActionEvent e) -> {
+			viewManager.setZoom(1.2);
+		});
+		zoomInMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS,
+				Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		viewMenu.add(zoomInMenuItem);
+		
+		JMenuItem zoomOutMenuItem = new JMenuItem("Zoom Out");
+		zoomOutMenuItem.addActionListener((ActionEvent e) -> {
+			viewManager.setZoom(1.0 / 1.2);
+		});
+		zoomOutMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, 
+				Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+		viewMenu.add(zoomOutMenuItem);
+		
+		JMenuItem rotateClockwiseMenuItem = new JMenuItem("Rotate Clockwise");
+		rotateClockwiseMenuItem.addActionListener((ActionEvent e) -> {
+//			System.out.println("Rotated clockwise");
+			viewManager.rotate(1);
+		});
+		rotateClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
+		viewMenu.add(rotateClockwiseMenuItem);
+
+		JMenuItem rotateCounterClockwiseMenuItem = new JMenuItem("Rotate Counterclockwise");
+		rotateCounterClockwiseMenuItem.addActionListener((ActionEvent e) -> {
+//			System.out.println("Rotated counterclockwise");
+			viewManager.rotate(-1);
+		});
+		rotateCounterClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0));
+		viewMenu.add(rotateCounterClockwiseMenuItem);
+
 		menuBar.add(viewMenu);
+		
 	}
 	private void initialize() {
-		game = new ChaosGame(frame.getWidth(), frame.getHeight());
+		game = new ChaosGame(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
 		functionSet = new Function[]{
 				new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
 				new Function(new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
@@ -206,7 +249,7 @@ public class FlameFrame extends JComponent {
 		for (Function func : functionSet) {
 			func.setBlend(0, 1.0);
 //			func.setBlend(1, 0.25);
-//			func.setBlend(2, 0.25);
+//			func.setBlend(2, 1.0); // TODO FIX ME: NaN
 			func.setBlend(3, 1.0);
 //			func.setBlend(4, 0.25);
 //			func.setBlend(5, 1.0);
@@ -226,35 +269,27 @@ public class FlameFrame extends JComponent {
 			}
 		}
 	}
-	private static boolean testEquality(Point a, Point b) {
-		return a.x == b.x && a.y == b.y;
-	}
-	private void iterateChaos(int iterations) {
-		Point scroll = mouseHandler.getOrigin();
-		double zoom = mouseHandler.getZoom();
-		boolean clearedScreen = false;
-		if (zoom != previousZoom ||
-			!testEquality(scroll, previousScroll) ||
-			game.getWidth() != frame.getWidth() ||
-			game.getHeight() != frame.getHeight()) {
-			resetGame();
-			clearedScreen = true;
+	private void iterate(int iterations) {
+		Position scroll = viewManager.getScroll();
+		if (!scroll.equals(previousScroll) || 
+				game.getWidth() != frame.getContentPane().getWidth() || 
+				game.getHeight() != frame.getContentPane().getHeight()) {
+			clearScreen();
+			iterations *= 10;
 		}
-		previousZoom = zoom;
-		previousScroll = new Point(scroll.x, scroll.y);
-		if (clearedScreen) iterations *= 10;
-		game.iterate(functionSet, iterations, previousScroll, zoom);
+		previousScroll = scroll.clone();
+		game.iterate(functionSet, iterations, previousScroll, viewManager.getZoom(), viewManager.getRotation());
 	}
 	private void updateImage() {
 		currentImage = Painter.getImage(game);
 	}
 	public void paintComponent(Graphics g) {
-		if (!gamePaused) {
-			iterateChaos(lowIterations);
+		if (!iterationPaused) {
+			iterate(lowIterations);
 		}
 		updateImage();
 		g.drawImage(currentImage, 0, 0, null);
-		if (gamePaused) {
+		if (iterationPaused) {
 			g.setColor(Color.white);
 			g.drawString("Paused", 15, 15);
 		}

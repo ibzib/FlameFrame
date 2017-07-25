@@ -1,4 +1,4 @@
 
 public interface Transform {
-	Point fn(double[] params, double[] affine, Point point);
+	Position fn(double[] params, double[] affine, Position point);
 }

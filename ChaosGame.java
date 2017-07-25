@@ -4,14 +4,14 @@ public final class ChaosGame {
 	private static final int ignoredIterations = 20;
 	private long iterationsRun = 0;
 	private long[][] densityCounts;
-	private Point p;
+	private Position p;
 	public ChaosGame(int width, int height) {
 		resize(width, height);
 	}
 	public void resize(int width, int height) {
 		assert width > 0 && height > 0;
 		Random rand = new Random();
-		p = new Point(rand.nextDouble(), rand.nextDouble());
+		p = new Position(rand.nextDouble(), rand.nextDouble());
 		densityCounts = new long[width][height];
 		iterationsRun = 0;
 	}
@@ -75,9 +75,8 @@ public final class ChaosGame {
 		}
 		return output;
 	}
-	public void iterate(Function[] system, int numberOfIterations, Point scroll, double zoom) {
-		assert system.length > 0;
-		// TODO move weight logic into Function class
+	public void iterate(Function[] system, int numberOfIterations, Position scroll, double zoom, double rotation) {
+ 		// TODO move weight logic into Function class
 		double[] weight = new double[system.length];
 		weight[0] = system[0].getWeight();
 		for (int w = 1; w < system.length; w++) {
@@ -92,11 +91,12 @@ public final class ChaosGame {
 				if (randf < weight[f]) break;
 			}
 			p = system[f].transform(p);
-			int pixelX = (int)(zoom * p.x - scroll.x);
-			int pixelY = (int)(zoom * p.y - scroll.y);
-			if (rand.nextInt() % 1000 == 0) {
-//				System.out.format("P = (%d, %d)\n", pixelX, pixelY);
-			}
+			Position pixel = p.getScale(zoom).getSum(scroll.getScale(-1)).getRotation(rotation);
+			int pixelX = (int)pixel.x;
+			int pixelY = (int)pixel.y;
+//			if (rand.nextInt() % 1000 == 0) {
+//				System.out.format("Cartesian (%f, %f)    Pixels (%d, %d)\n", p.x, p.y, pixelX, pixelY);
+//			}
 			if (pixelY < 0 || pixelX >= getWidth() || pixelY >= getHeight() || pixelX < 0) {
 				outOfBounds++;
 			} else if (iterationsRun >= ignoredIterations) {
