@@ -13,25 +13,43 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.KeyStroke;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FlameFrame extends JComponent {
-	private static final long serialVersionUID = 1L;
-	private JFrame frame = new JFrame("FlameFrame");
+	private static final long serialVersionUID = 2L;
+	// UI components
+	private final String appName = "FlameFrame";
+	private JFrame frame = new JFrame(appName);
 	ViewManager viewManager = new ViewManager();
 	private JMenuBar menuBar = new JMenuBar();
 	private JMenuItem playPauseMenuItem;
+	// black and white / color
+	private boolean showBlackAndWhite;
+	private JMenuItem blackAndWhiteMenuItem;
+	private final String showColorMessage = "Show Color";
+	private final String showBlackAndWhiteMessage = "Show Black and White";
+	// bold / unbold
+	private boolean showBold;
 	private JMenuItem boldMenuItem;
+	private final String showBoldMessage = "Bold Points";
+	private final String unBoldMessage = "Unbold Points";
+	// program state information
+	private Function[] functionSet;
+	private ChaosGame game;
+	private BufferedImage currentImage;
 	private int targetFPS = 15;
 	private boolean iterationPaused = false;
 	private boolean renderingStopped = false;
-	private ChaosGame game;
-	private BufferedImage currentImage;
 	private int lowIterations = 1000;
 	private int highIterations = 10000000;
-	private Function[] functionSet;
 	private Position previousScroll = new Position(0, 0);
 	public static void main(String[] args) {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 		System.setProperty("apple.laf.useScreenMenuBar", "true");
 		FlameFrame app = new FlameFrame();
 		try {
@@ -54,14 +72,12 @@ public class FlameFrame extends JComponent {
 	private void pause() {
 		iterationPaused = true;
 		playPauseMenuItem.setText("Play");
-		System.out.println("Paused simulation");
 	}
 	private void play() {
 		renderingStopped = false;
 		iterationPaused = false;
 		setInputEnabled(true);
 		playPauseMenuItem.setText("Pause");
-		System.out.println("Played simulation");
 	}
 	private void stop() {
 		setInputEnabled(false);
@@ -72,15 +88,26 @@ public class FlameFrame extends JComponent {
 		try {
 			// TODO let user choose image size
 			stop();
-			JFileChooser chooser = new JFileChooser(System.getProperty("user.dir"));
+			File imagesDir = new File("images");
+			imagesDir.mkdir();
+			JFileChooser chooser = new JFileChooser(imagesDir);
+			chooser.setSelectedFile(new File("cool_fractal"));
 			chooser.setDialogType(JFileChooser.SAVE_DIALOG);
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("PNG Image", "png");
-			chooser.setFileFilter(filter);
-			chooser.setSelectedFile(new File("fractal.png"));
+			FileNameExtensionFilter jpgFilter = new FileNameExtensionFilter("JPEG Image", "jpg", "jpeg");
+			FileNameExtensionFilter pngFilter = new FileNameExtensionFilter("Portable Network Graphic (PNG)", "png");
+// 			TODO Figure out why BMP images won't save
+//			FileNameExtensionFilter bmpFilter = new FileNameExtensionFilter("Windows Bitmap (BMP)", "bmp");
+//			chooser.addChoosableFileFilter(bmpFilter);
+			chooser.setFileFilter(jpgFilter);
+			chooser.addChoosableFileFilter(pngFilter);
+			chooser.setAcceptAllFileFilterUsed(false);
+			chooser.setMultiSelectionEnabled(false);
 			int returnVal = chooser.showSaveDialog(frame);
 			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				String imageFileName = ImageManager.saveImage(currentImage, chooser.getSelectedFile().getName());
-				Function.record(functionSet, imageFileName);
+				String inputtedPath = chooser.getSelectedFile().getAbsolutePath();
+				String extension = ((FileNameExtensionFilter)(chooser.getFileFilter())).getExtensions()[0];
+				String outputImageFileName = ImageManager.saveImage(currentImage, inputtedPath, extension);
+				Function.record(functionSet, outputImageFileName);
 			}
 			play();
 		} catch (IOException ex) {
@@ -89,15 +116,22 @@ public class FlameFrame extends JComponent {
 		}
 	}
 	private void clearScreen() {
-//		System.out.println("Clearing points");
 		game.resize(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
 	}
-	private void toggleBold() {
-		ImageManager.boldPoints = !ImageManager.boldPoints;
-		if (ImageManager.boldPoints) {
-			boldMenuItem.setText("Unbold");
+	private void toggleBlackAndWhite() {
+		showBlackAndWhite = !showBlackAndWhite;
+		if (showBlackAndWhite) {
+			blackAndWhiteMenuItem.setText(showColorMessage);
 		} else {
-			boldMenuItem.setText("Bold");
+			blackAndWhiteMenuItem.setText(showBlackAndWhiteMessage);
+		}
+	}
+	private void toggleBold() {
+		showBold = !showBold;
+		if (showBold) {
+			boldMenuItem.setText(unBoldMessage);
+		} else {
+			boldMenuItem.setText(showBoldMessage);
 		}
 	}
 	public FlameFrame() {
@@ -136,16 +170,20 @@ public class FlameFrame extends JComponent {
 		// Appearance menu
 		////////////////////
 		JMenu appearanceMenu = new JMenu("Appearance");
-		
-		JMenuItem blackAndWhiteMenuItem = new JMenuItem("Black and White");
+				
+		showBlackAndWhite = false;
+		String bwMessage = showBlackAndWhite ? showColorMessage : showBlackAndWhiteMessage;
+		blackAndWhiteMenuItem = new JMenuItem(bwMessage);
 		blackAndWhiteMenuItem.addActionListener((ActionEvent e) -> {
-			ImageManager.boldPoints = true;	
+			toggleBlackAndWhite();
 		});
 		blackAndWhiteMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_0, 
                 Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		appearanceMenu.add(blackAndWhiteMenuItem);
-				
-		boldMenuItem = new JMenuItem("Toggle Bold");
+		
+		showBold = false;
+		String boldMessage = showBold ? unBoldMessage : showBoldMessage;
+		boldMenuItem = new JMenuItem(boldMessage);
 		boldMenuItem.addActionListener((ActionEvent e) -> {
 			toggleBold();
 		});
@@ -207,7 +245,6 @@ public class FlameFrame extends JComponent {
 		
 		JMenuItem rotateClockwiseMenuItem = new JMenuItem("Rotate Clockwise");
 		rotateClockwiseMenuItem.addActionListener((ActionEvent e) -> {
-//			System.out.println("Rotated clockwise");
 			viewManager.rotate(1);
 		});
 		rotateClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
@@ -215,7 +252,6 @@ public class FlameFrame extends JComponent {
 
 		JMenuItem rotateCounterClockwiseMenuItem = new JMenuItem("Rotate Counterclockwise");
 		rotateCounterClockwiseMenuItem.addActionListener((ActionEvent e) -> {
-//			System.out.println("Rotated counterclockwise");
 			viewManager.rotate(-1);
 		});
 		rotateCounterClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0));
@@ -226,16 +262,14 @@ public class FlameFrame extends JComponent {
 	}
 	private void initialize() {
 		game = new ChaosGame(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
-		functionSet = new Function[]{
-				new Function(Palette.getColor(0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
+		functionSet = new Function[]{new Function(Palette.getColor(0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
 				new Function(Palette.getColor(1.0/3.0+0.2), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
-				new Function(Palette.getColor(2.0/3.0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1)
-				};
+				new Function(Palette.getColor(2.0/3.0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1)};
 		for (Function func : functionSet) {
 			func.setBlend(0, 1.0);
 //			func.setBlend(1, 0.25);
 //			func.setBlend(2, 1.0); // TODO FIX ME: NaN
-			func.setBlend(3, 1.0);
+			func.setBlend(3, 1);
 //			func.setBlend(4, 0.25);
 //			func.setBlend(5, 1.0);
 //			func.setBlend(6, 1.0);
@@ -266,7 +300,7 @@ public class FlameFrame extends JComponent {
 		game.iterate(functionSet, iterations, previousScroll, viewManager.getZoom(), viewManager.getRotation());
 	}
 	private void updateImage() {
-		currentImage = ImageManager.getImage(game);
+		currentImage = ImageManager.getImage(game, showBlackAndWhite, showBold);
 	}
 	public void paintComponent(Graphics g) {
 		if (!iterationPaused) {
