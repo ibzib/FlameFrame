@@ -79,7 +79,7 @@ public class FlameFrame extends JComponent {
 			chooser.setSelectedFile(new File("fractal.png"));
 			int returnVal = chooser.showSaveDialog(frame);
 			if (returnVal == JFileChooser.APPROVE_OPTION) {
-				String imageFileName = Painter.saveImage(currentImage, chooser.getSelectedFile().getName());
+				String imageFileName = ImageManager.saveImage(currentImage, chooser.getSelectedFile().getName());
 				Function.record(functionSet, imageFileName);
 			}
 			play();
@@ -93,8 +93,8 @@ public class FlameFrame extends JComponent {
 		game.resize(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
 	}
 	private void toggleBold() {
-		Painter.boldPoints = !Painter.boldPoints;
-		if (Painter.boldPoints) {
+		ImageManager.boldPoints = !ImageManager.boldPoints;
+		if (ImageManager.boldPoints) {
 			boldMenuItem.setText("Unbold");
 		} else {
 			boldMenuItem.setText("Bold");
@@ -139,28 +139,12 @@ public class FlameFrame extends JComponent {
 		
 		JMenuItem blackAndWhiteMenuItem = new JMenuItem("Black and White");
 		blackAndWhiteMenuItem.addActionListener((ActionEvent e) -> {
-			Painter.setColorOffset(Painter.ColorScheme.BLACK_AND_WHITE);	
+			ImageManager.boldPoints = true;	
 		});
 		blackAndWhiteMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_0, 
                 Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 		appearanceMenu.add(blackAndWhiteMenuItem);
-		
-		JMenuItem sherbetMenuItem = new JMenuItem("Color Scheme 1");
-		sherbetMenuItem.addActionListener((ActionEvent e) -> {
-			Painter.setColorOffset(Painter.ColorScheme.SHERBET);	
-		});
-		sherbetMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_1,
-                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		appearanceMenu.add(sherbetMenuItem);
-		
-		JMenuItem inverseSherbetMenuItem = new JMenuItem("Color Scheme 2");
-		inverseSherbetMenuItem.addActionListener((ActionEvent e) -> {
-			Painter.setColorOffset(Painter.ColorScheme.INVERSE_SHERBET);	
-		});
-		inverseSherbetMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_2, 
-                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
-		appearanceMenu.add(inverseSherbetMenuItem);
-		
+				
 		boldMenuItem = new JMenuItem("Toggle Bold");
 		boldMenuItem.addActionListener((ActionEvent e) -> {
 			toggleBold();
@@ -193,6 +177,7 @@ public class FlameFrame extends JComponent {
 		
 		JMenuItem addIterationsMenuItem = new JMenuItem(String.format("Run %d Iterations", highIterations));
 		addIterationsMenuItem.addActionListener((ActionEvent e) -> {
+			// TODO add progress bar
 			iterate(highIterations);
 		});
 		addIterationsMenuItem.setAccelerator(KeyStroke.getKeyStroke('\n'));
@@ -242,9 +227,9 @@ public class FlameFrame extends JComponent {
 	private void initialize() {
 		game = new ChaosGame(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
 		functionSet = new Function[]{
-				new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
-				new Function(new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
-				new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1)
+				new Function(Palette.getColor(0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
+				new Function(Palette.getColor(1.0/3.0+0.2), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
+				new Function(Palette.getColor(2.0/3.0+0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1)
 				};
 		for (Function func : functionSet) {
 			func.setBlend(0, 1.0);
@@ -281,7 +266,7 @@ public class FlameFrame extends JComponent {
 		game.iterate(functionSet, iterations, previousScroll, viewManager.getZoom(), viewManager.getRotation());
 	}
 	private void updateImage() {
-		currentImage = Painter.getImage(game);
+		currentImage = ImageManager.getImage(game);
 	}
 	public void paintComponent(Graphics g) {
 		if (!iterationPaused) {

@@ -1,18 +1,25 @@
+import java.awt.Color;
 import java.util.Random;
 
 public final class ChaosGame {
 	private static final int ignoredIterations = 20;
 	private long iterationsRun = 0;
-	private long[][] densityCounts;
-	private Position p;
+	private Pixel[][] densityCounts;
+	private Pixel pixel = new Pixel();
+	private Position point;
 	public ChaosGame(int width, int height) {
 		resize(width, height);
 	}
 	public void resize(int width, int height) {
 		assert width > 0 && height > 0;
 		Random rand = new Random();
-		p = new Position(rand.nextDouble(), rand.nextDouble());
-		densityCounts = new long[width][height];
+		point = new Position(rand.nextDouble(), rand.nextDouble());
+		densityCounts = new Pixel[width][height];
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				densityCounts[i][j] = new Pixel();
+			}
+		}
 		iterationsRun = 0;
 	}
 	public int getWidth() {
@@ -28,12 +35,12 @@ public final class ChaosGame {
 		int nonZeroCount = 0;
 		for (int i = 0; i < getWidth(); i++) {
 			for (int j = 0; j < getHeight(); j++) {
-				if (densityCounts[i][j] > max) {
-					max = densityCounts[i][j];
+				if (densityCounts[i][j].a > max) {
+					max = densityCounts[i][j].a;
 					maxX = i;
 					maxY = j;
 				}
-				if (densityCounts[i][j] > 0) {
+				if (densityCounts[i][j].a > 0) {
 					nonZeroCount++;
 				}
 			}
@@ -56,21 +63,28 @@ public final class ChaosGame {
 		long max = 0;
 		for (int i = 0; i < getWidth(); i++) {
 			for (int j = 0; j < getHeight(); j++) {
-				if (densityCounts[i][j] > max)
-					max = densityCounts[i][j];
+				if (densityCounts[i][j].a > max)
+					max = densityCounts[i][j].a;
 			}
 		}
 		return max;
 	}
-	public double[][] getScaledDensities() {
-		double[][] output = new double[getWidth()][getHeight()];
+	public Color[][] getScaledDensities() {
+		Color[][] output = new Color[getWidth()][getHeight()];
 		long max = getMaxDensity();
-//		System.out.format("Max density: %d\n", max);
 		double logmax = Math.log(max);
 		for (int i = 0; i < getWidth(); i++) {
 			for (int j = 0; j < getHeight(); j++) {
-				output[i][j] = densityCounts[i][j] == 0 ? 0 : Math.log(densityCounts[i][j]) / logmax;
-//				System.out.format("%d -> %f\n", input[i][j], output[i][j]);
+				Pixel pix = densityCounts[i][j];
+				if (pix.a == 0) {
+					output[i][j] = Color.black;
+				} else {
+					double intensity = Math.log(densityCounts[i][j].a) / logmax;
+					output[i][j] = new Color((float)(intensity*pix.r), 
+							(float)(intensity*pix.g), 
+							(float)(intensity*pix.b), 
+							(float)(1f-intensity));
+				}
 			}
 		}
 		return output;
@@ -90,17 +104,23 @@ public final class ChaosGame {
 			for (f = 0; f < weight.length; f++) {
 				if (randf < weight[f]) break;
 			}
-			p = system[f].transform(p);
-			Position pixel = p.getScale(zoom).getSum(scroll.getScale(-1)).getRotation(rotation);
-			int pixelX = (int)pixel.x;
-			int pixelY = (int)pixel.y;
+			point = system[f].transform(point);
+			Position position = point.getScale(zoom).getSum(scroll.getScale(-1)).getRotation(rotation);
+			int posX = (int)position.x;
+			int posY = (int)position.y;
 //			if (rand.nextInt() % 1000 == 0) {
-//				System.out.format("Cartesian (%f, %f)    Pixels (%d, %d)\n", p.x, p.y, pixelX, pixelY);
+//				System.out.format("Cartesian (%f, %f)    Pixels (%d, %d)\n", p.x, p.y, posX, posY);
 //			}
-			if (pixelY < 0 || pixelX >= getWidth() || pixelY >= getHeight() || pixelX < 0) {
+			if (posY < 0 || posX >= getWidth() || posY >= getHeight() || posX < 0) {
 				outOfBounds++;
 			} else if (iterationsRun >= ignoredIterations) {
-				densityCounts[pixelX][pixelY]++;
+				pixel.r = 0.5*(pixel.r + system[f].getRed());
+				pixel.g = 0.5*(pixel.g + system[f].getGreen());
+				pixel.b = 0.5*(pixel.b + system[f].getBlue());			
+				densityCounts[posX][posY].r = pixel.r;
+				densityCounts[posX][posY].g = pixel.g;
+				densityCounts[posX][posY].b = pixel.b;			
+				densityCounts[posX][posY].a++;
 			}
 			iterationsRun++;
 		}

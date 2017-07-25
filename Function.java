@@ -4,22 +4,34 @@ import java.io.UnsupportedEncodingException;
 
 // represents one function in an IFS
 public class Function {
+	private Pixel pixel;
 	private double[] blend; // variational coefficients
 	private double[] params; // parametric coefficients
 	private double[] affine; // matrix coefficients
 	private double weight = 1;
 	public double getWeight() { return weight; }
-	public Function(double[] b, double[] p, double[] a, double w) {
+	public Function(Pixel pix, double[] b, double[] p, double[] a, double w) {
 		assert b.length == variations.length;
 		assert p.length >= paramsRequired;
 		assert affine.length == 6;
+		assert pix != null;
 		
+		this.pixel = pix;
 		blend = b;
 		params = p;
 		affine = a;
 	}
-	public Function(double[] a, double w) {
-		this(new double[variations.length], new double[paramsRequired], a, w);
+	public Function(Pixel pix, double[] a, double w) {
+		this(pix, new double[variations.length], new double[paramsRequired], a, w);
+	}
+	public double getRed() {
+		return pixel.r;
+	}
+	public double getGreen() {
+		return pixel.g;
+	}
+	public double getBlue() {
+		return pixel.b;
 	}
 	public void setBlend(int index, double value) {
 		blend[index] = value;
