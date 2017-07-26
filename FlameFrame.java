@@ -42,7 +42,7 @@ public class FlameFrame extends JComponent {
     private boolean iterationPaused = false;
     private boolean renderingStopped = false;
     private int lowIterations = 1000;
-    private int highIterations = 10000000;
+    private int highIterations = 5000000;
     private Position previousScroll = new Position(0, 0);
 
     public static void main(String[] args) {
@@ -204,7 +204,7 @@ public class FlameFrame extends JComponent {
         boldMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_B, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         appearanceMenu.add(boldMenuItem);
-
+        
         menuBar.add(appearanceMenu);
 
         ///////////////////
@@ -278,17 +278,17 @@ public class FlameFrame extends JComponent {
     private void initialize() {
         game = new ChaosGame(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
         functionSet = new Function[] {
-                new Function(Palette.getColor(0 + 0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
-                new Function(Palette.getColor(1.0 / 3.0 + 0.2), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
-                new Function(Palette.getColor(2.0 / 3.0 + 0.2), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1) };
+                new Function(MyColor.getColor(0.0), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
+                new Function(MyColor.getColor(0.3333333), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
+                new Function(MyColor.getColor(0.6666666), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1) };
         for (Function func : functionSet) {
             func.setBlend(0, 1.0);
             // func.setBlend(1, 0.25);
             // func.setBlend(2, 1.0); // TODO FIX ME: NaN
-            func.setBlend(3, 1);
-            // func.setBlend(4, 0.25);
-            // func.setBlend(5, 1.0);
-            // func.setBlend(6, 1.0);
+//            func.setBlend(3, 1);
+             func.setBlend(4, 1.0);
+//             func.setBlend(5, 1.0);
+             func.setBlend(6, 1.0);
         }
     }
 

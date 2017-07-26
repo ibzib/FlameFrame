@@ -3,15 +3,15 @@ import java.util.Random;
 public final class ChaosGame {
     private static final int ignoredIterations = 20;
     private long iterationsRun = 0;
-    private Pixel[][] plot;
-    private Pixel currentPixel = new Pixel();
+    private MyColor[][] plot;
+    private MyColor currentColor = new MyColor();
     private Position currentPoint;
 
     public ChaosGame(int width, int height) {
         resize(width, height);
     }
 
-    public Pixel[][] getPlot() {
+    public MyColor[][] getPlot() {
         return plot;
     }
 
@@ -19,10 +19,10 @@ public final class ChaosGame {
         assert width > 0 && height > 0;
         Random rand = new Random();
         currentPoint = new Position(rand.nextDouble(), rand.nextDouble());
-        plot = new Pixel[width][height];
+        plot = new MyColor[width][height];
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                plot[i][j] = new Pixel();
+                plot[i][j] = new MyColor();
             }
         }
         iterationsRun = 0;
@@ -58,12 +58,10 @@ public final class ChaosGame {
             if (posY < 0 || posX >= getWidth() || posY >= getHeight() || posX < 0) {
                 outOfBounds++;
             } else if (iterationsRun >= ignoredIterations) {
-                currentPixel.r = 0.5 * (currentPixel.r + system[f].getRed());
-                currentPixel.g = 0.5 * (currentPixel.g + system[f].getGreen());
-                currentPixel.b = 0.5 * (currentPixel.b + system[f].getBlue());
-                plot[posX][posY].r = currentPixel.r;
-                plot[posX][posY].g = currentPixel.g;
-                plot[posX][posY].b = currentPixel.b;
+                currentColor.averageRGB(system[f].getColor());
+                plot[posX][posY].r = currentColor.r;
+                plot[posX][posY].g = currentColor.g;
+                plot[posX][posY].b = currentColor.b;
                 plot[posX][posY].a++;
             }
             iterationsRun++;

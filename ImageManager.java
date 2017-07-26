@@ -30,7 +30,7 @@ public final class ImageManager {
         return output;
     }
 
-    private static long getMaxDensity(Pixel[][] plot) {
+    private static long getMaxDensity(MyColor[][] plot) {
         long max = 0;
         for (int i = 0; i < plot.length; i++) {
             for (int j = 0; j < plot[0].length; j++) {
@@ -49,26 +49,26 @@ public final class ImageManager {
         return new Color((int) r, (int) g, (int) b);
     }
 
-    private static Color[][] getRGBColorMap(Pixel[][] plot) {
+    private static Color[][] getRGBColorMap(MyColor[][] plot) {
         Color[][] output = new Color[plot.length][plot[0].length];
         long max = getMaxDensity(plot);
         double logmax = Math.log(max);
         for (int i = 0; i < plot.length; i++) {
             for (int j = 0; j < plot[i].length; j++) {
-                Pixel pix = plot[i][j];
-                if (pix.a == 0) {
+                MyColor col = plot[i][j];
+                if (col.a == 0) {
                     output[i][j] = Color.black;
                 } else {
                     double intensity = Math.log(plot[i][j].a) / logmax;
-                    output[i][j] = alphaComposite(new Color((float) (intensity * pix.r), (float) (intensity * pix.g),
-                            (float) (intensity * pix.b), (float) (1f - intensity)), Color.white);
+                    output[i][j] = alphaComposite(new Color((float) (intensity * col.r), (float) (intensity * col.g),
+                            (float) (intensity * col.b), (float) (1f - intensity)), Color.white);
                 }
             }
         }
         return output;
     }
 
-    private static Color[][] getBWColorMap(Pixel[][] plot) {
+    private static Color[][] getBWColorMap(MyColor[][] plot) {
         Color[][] output = new Color[plot.length][plot[0].length];
         for (int i = 0; i < plot.length; i++) {
             for (int j = 0; j < plot[i].length; j++) {
@@ -79,7 +79,7 @@ public final class ImageManager {
     }
 
     public static BufferedImage getImage(ChaosGame game, boolean showBlackAndWhite, boolean showBold) {
-        Pixel[][] plot = game.getPlot();
+        MyColor[][] plot = game.getPlot();
         Color[][] colorMap = showBlackAndWhite ? getBWColorMap(plot) : getRGBColorMap(plot);
         if (showBold) {
             colorMap = boldPoints(colorMap);
