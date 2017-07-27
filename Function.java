@@ -33,8 +33,12 @@ public class Function {
         return color;
     }
     
-    public void setBlend(int index, double value) {
-        blend[index] = value;
+    public void setBlend(int variationIndex, double value) {
+        blend[variationIndex] = value;
+    }
+
+    public double getBlend(int variationIndex) {
+        return blend[variationIndex];
     }
 
     public static void record(Function[] system, String imageName)

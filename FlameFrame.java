@@ -1,27 +1,43 @@
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import javax.swing.JComponent;
+import java.io.InputStream;
+import java.util.ArrayList;
+
+import javax.imageio.ImageIO;
+import javax.swing.AbstractAction;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-public class FlameFrame extends JComponent {
+public class FlameFrame extends JPanel {
     private static final long serialVersionUID = 2L;
     // UI components
+    private final String drawNowStr = "Draw Now";
     private final String appName = "FlameFrame";
-    private JFrame frame = new JFrame(appName);
+    private JFrame frame = new JFrame();
     ViewManager viewManager = new ViewManager();
+    private JPanel sidebar = new JPanel();
     private JMenuBar menuBar = new JMenuBar();
     private JMenuItem playPauseMenuItem;
     // black and white / color
@@ -125,7 +141,7 @@ public class FlameFrame extends JComponent {
     }
 
     private void clearScreen() {
-        game.resize(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
+        game.resize(this.getWidth(), this.getHeight());
     }
 
     private void toggleBlackAndWhite() {
@@ -150,21 +166,106 @@ public class FlameFrame extends JComponent {
         initialize();
         setDoubleBuffered(true);
         setUpMenuBar();
+        setUpSidebar();
         setUpFrame();
+    }
+    
+    private void setUpSidebar() {
+        sidebar.setLayout(new BorderLayout());
+        // iteration settings
+        JPanel iterationPanel = new JPanel(new GridLayout(4, 2));
+        // draw now
+        JLabel drawNowTitle = new JLabel(drawNowStr);
+        Font boldFont = new Font(drawNowTitle.getFont().getFontName(), Font.BOLD, drawNowTitle.getFont().getSize());
+        drawNowTitle.setFont(boldFont);
+        iterationPanel.add(drawNowTitle);
+        iterationPanel.add(new JLabel());
+        String highIterationsStr = String.format("%d", highIterations);
+        // TODO get highIterationsStr via method
+        JTextField drawNowInput = new JTextField(highIterationsStr); 
+        iterationPanel.add(drawNowInput);
+        JButton drawNowButton = new JButton(drawNowAction);
+        drawNowButton.setText("Go");
+        iterationPanel.add(drawNowButton);
+        // per frame
+        JLabel settingsTitle = new JLabel("Settings");
+        settingsTitle.setFont(boldFont);
+        iterationPanel.add(settingsTitle);
+        iterationPanel.add(new JLabel());
+        JTextField iterationsPerFrameInput = new JTextField(String.format("%d", lowIterations));
+        JLabel perFrameMessage = new JLabel("Points/Frame");
+        perFrameMessage.setForeground(Color.gray);
+        iterationPanel.add(perFrameMessage);
+        iterationPanel.add(iterationsPerFrameInput);
+        sidebar.add(iterationPanel, BorderLayout.NORTH);
+        // blend settings
+        JPanel blendList = new JPanel(new GridLayout(Function.variations.length, 2));
+        for (int i = 0; i < Function.variations.length; i++) {
+            JLabel variationLabel = new JLabel(Function.variations[i].getName());
+            variationLabel.setForeground(Color.gray);
+            blendList.add(variationLabel);
+            blendList.add(new JTextField(String.format("%f", functionSet[0].getBlend(i))));
+        }
+        JScrollPane blendPane = new JScrollPane(blendList);
+        JLabel headerLabel = new JLabel("Blend Values");
+        JPanel header = new JPanel();
+        header.add(headerLabel);
+        blendPane.setColumnHeaderView(header);
+        blendPane.setBorder(null);
+        sidebar.add(blendPane, BorderLayout.CENTER);
+        // finishing touches
+        double minimumWidth = Math.max(iterationPanel.getPreferredSize().getWidth(),
+                blendList.getPreferredSize().getWidth());
+        sidebar.setMinimumSize(new Dimension((int) minimumWidth, 0));
+        sidebar.setSize(sidebar.getMinimumSize());
+        JButton applySettingsButton = new JButton("Apply Settings");
+        // TODO add functionality to applySettingsButton
+        sidebar.add(applySettingsButton, BorderLayout.SOUTH);
     }
 
     private void setUpFrame() {
-        // frame.pack();
-        frame.getContentPane().add(this);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, this, sidebar);
+        splitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setResizeWeight(0.99);
+        splitPane.setBorder(null);
+        // TODO make double-click collapse sidebar
+        splitPane.setOneTouchExpandable(true);
+        frame.getContentPane().add(splitPane);
+        // NOTE macOS does not support frame icons.
+        try {
+            String[] iconPaths = new String[] { "res/icon128.png", "res/icon64.png", "res/icon32.png",
+                    "res/icon16.png" };
+            ArrayList<BufferedImage> iconImages = new ArrayList<BufferedImage>();
+            for (int i = 0; i < iconPaths.length; i++) {
+                System.out.println("read in " + iconPaths[i]);
+                InputStream imgStream = FlameFrame.class.getResourceAsStream(iconPaths[i]);
+                iconImages.add(ImageIO.read(imgStream));
+            }
+            frame.setIconImages(iconImages);
+        } catch (IOException e) {
+            System.err.println("Failed to load icon");
+            e.printStackTrace();
+        }
         frame.setJMenuBar(menuBar);
+        frame.setTitle(appName);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        viewManager.setParent(frame.getContentPane());
-        frame.getContentPane().addMouseListener(viewManager);
-        frame.getContentPane().addMouseMotionListener(viewManager);
-        frame.getContentPane().addMouseWheelListener(viewManager);
+        viewManager.setParent(this);
+        this.addMouseListener(viewManager);
+        this.addMouseMotionListener(viewManager);
+        this.addMouseWheelListener(viewManager);
         frame.setVisible(true);
     }
+
+    private AbstractAction drawNowAction = new AbstractAction() {
+        private static final long serialVersionUID = 5949543484405754612L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // TODO Auto-generated method stub
+            iterate(highIterations);
+        }
+    };
 
     private void setUpMenuBar() {
         //////////////
@@ -191,6 +292,7 @@ public class FlameFrame extends JComponent {
         blackAndWhiteMenuItem.addActionListener((ActionEvent e) -> {
             toggleBlackAndWhite();
         });
+
         blackAndWhiteMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_0, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         appearanceMenu.add(blackAndWhiteMenuItem);
@@ -204,7 +306,7 @@ public class FlameFrame extends JComponent {
         boldMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_B, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         appearanceMenu.add(boldMenuItem);
-        
+
         menuBar.add(appearanceMenu);
 
         ///////////////////
@@ -216,10 +318,11 @@ public class FlameFrame extends JComponent {
         playPauseMenuItem.addActionListener((ActionEvent e) -> {
             togglePlayPause();
         });
-        playPauseMenuItem.setAccelerator(KeyStroke.getKeyStroke(' '));
+        playPauseMenuItem.setAccelerator(
+                KeyStroke.getKeyStroke(KeyEvent.VK_K, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         iterationMenu.add(playPauseMenuItem);
 
-        JMenuItem clearMenuItem = new JMenuItem("Clear Iteration");
+        JMenuItem clearMenuItem = new JMenuItem("Clear Iterations");
         clearMenuItem.addActionListener((ActionEvent e) -> {
             clearScreen();
         });
@@ -227,12 +330,14 @@ public class FlameFrame extends JComponent {
                 KeyStroke.getKeyStroke(KeyEvent.VK_R, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         iterationMenu.add(clearMenuItem);
 
-        JMenuItem addIterationsMenuItem = new JMenuItem(String.format("Run %d Iterations", highIterations));
-        addIterationsMenuItem.addActionListener((ActionEvent e) -> {
-            // TODO add progress bar
-            iterate(highIterations);
-        });
-        addIterationsMenuItem.setAccelerator(KeyStroke.getKeyStroke('\n'));
+        JMenuItem addIterationsMenuItem = new JMenuItem(drawNowStr);
+        addIterationsMenuItem.addActionListener(drawNowAction);
+        getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()),
+                "drawNowAction");
+        getActionMap().put("drawNowAction", drawNowAction);
+        addIterationsMenuItem.setAccelerator(
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         iterationMenu.add(addIterationsMenuItem);
         menuBar.add(iterationMenu);
 
@@ -259,16 +364,19 @@ public class FlameFrame extends JComponent {
 
         JMenuItem rotateClockwiseMenuItem = new JMenuItem("Rotate Clockwise");
         rotateClockwiseMenuItem.addActionListener((ActionEvent e) -> {
+            // TODO disable this and other iteration-dependent actions while paused
             viewManager.rotate(1);
         });
-        rotateClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0));
+        rotateClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET,
+                Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         viewMenu.add(rotateClockwiseMenuItem);
 
         JMenuItem rotateCounterClockwiseMenuItem = new JMenuItem("Rotate Counterclockwise");
         rotateCounterClockwiseMenuItem.addActionListener((ActionEvent e) -> {
             viewManager.rotate(-1);
         });
-        rotateCounterClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0));
+        rotateCounterClockwiseMenuItem.setAccelerator(
+                KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         viewMenu.add(rotateCounterClockwiseMenuItem);
 
         menuBar.add(viewMenu);
@@ -276,7 +384,7 @@ public class FlameFrame extends JComponent {
     }
 
     private void initialize() {
-        game = new ChaosGame(frame.getContentPane().getWidth(), frame.getContentPane().getHeight());
+        game = new ChaosGame(this.getWidth(), this.getHeight());
         functionSet = new Function[] {
                 new Function(MyColor.getColor(0.0), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
                 new Function(MyColor.getColor(0.3333333), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
@@ -285,10 +393,10 @@ public class FlameFrame extends JComponent {
             func.setBlend(0, 1.0);
             // func.setBlend(1, 0.25);
             // func.setBlend(2, 1.0); // TODO FIX ME: NaN
-//            func.setBlend(3, 1);
-             func.setBlend(4, 1.0);
-//             func.setBlend(5, 1.0);
-             func.setBlend(6, 1.0);
+            // func.setBlend(3, 1);
+            func.setBlend(4, 1.0);
+            // func.setBlend(5, 1.0);
+            func.setBlend(6, 1.0);
         }
     }
 
@@ -308,8 +416,8 @@ public class FlameFrame extends JComponent {
 
     private void iterate(int iterations) {
         Position scroll = viewManager.getScroll();
-        if (!scroll.equals(previousScroll) || game.getWidth() != frame.getContentPane().getWidth()
-                || game.getHeight() != frame.getContentPane().getHeight()) {
+        if (!scroll.equals(previousScroll) || game.getWidth() != this.getWidth()
+                || game.getHeight() != this.getHeight()) {
             clearScreen();
             iterations *= 10;
         }

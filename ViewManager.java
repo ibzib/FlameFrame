@@ -11,7 +11,7 @@ public class ViewManager extends MouseInputAdapter implements MouseWheelListener
     private double zoom = 100;
     private Position mousePress;
     private Position mousePointer;
-    private boolean isMouseInside = false;
+    private boolean isMouseInside = true;
     private Position scroll = new Position(0, 0);
     private double rotationAmount = Math.PI / 10.0;
     private double rotation = 0.0;
