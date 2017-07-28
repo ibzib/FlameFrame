@@ -9,6 +9,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -136,10 +138,11 @@ public class FlameFrame extends JPanel {
                 String outputImageFileName = ImageManager.saveImage(currentImage, inputtedPath, extension);
                 Function.record(functionSet, outputImageFileName);
             }
+        } catch (IOException ioex) {
+            // TODO FileNotFoundException not caught for some reason
+            JOptionPane.showMessageDialog(frame, "Error: " + ioex.getMessage());
+        } finally {
             play();
-        } catch (IOException ex) {
-            // TODO report error to user in dialog box
-            ex.printStackTrace();
         }
     }
 
@@ -269,8 +272,9 @@ public class FlameFrame extends JPanel {
                 }
                 iterate(iterations);                
             } catch (NumberFormatException ex) {
-                // TODO warning window
-                ex.printStackTrace();
+                stop();
+                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage());
+                play();
             }
         }
     };
@@ -295,10 +299,13 @@ public class FlameFrame extends JPanel {
                     }
                 }
             } catch (NumberFormatException ex) {
-                // TODO show warning pop-up
-                ex.printStackTrace();
+                stop();
+                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage());
+                play();
             }
-
+            for (int i = 0; i < Function.variations.length; i++) {
+                blendInputs[i].setText(String.format("%f", functionSet[0].getBlend(i)));
+            }
             clearScreen();
         }
     };
