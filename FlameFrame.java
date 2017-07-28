@@ -1,5 +1,6 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -270,7 +271,10 @@ public class FlameFrame extends JPanel {
                 if (iterations <= 0) {
                     throw new NumberFormatException("Number of points to draw must be greater than 0");
                 }
-                iterate(iterations);                
+                Cursor normalCursor = frame.getCursor();
+                frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+                iterate(iterations);
+                frame.setCursor(normalCursor);
             } catch (NumberFormatException ex) {
                 stop();
                 JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage());
@@ -389,7 +393,9 @@ public class FlameFrame extends JPanel {
 
         JMenuItem zoomInMenuItem = new JMenuItem("Zoom In");
         zoomInMenuItem.addActionListener((ActionEvent e) -> {
-            viewManager.setZoom(1.2);
+            if (!iterationPaused) {
+                viewManager.setZoom(1.2);
+            }
         });
         zoomInMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -397,7 +403,9 @@ public class FlameFrame extends JPanel {
 
         JMenuItem zoomOutMenuItem = new JMenuItem("Zoom Out");
         zoomOutMenuItem.addActionListener((ActionEvent e) -> {
-            viewManager.setZoom(1.0 / 1.2);
+            if (!iterationPaused) {
+                viewManager.setZoom(1.0 / 1.2);
+            }
         });
         zoomOutMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -405,8 +413,9 @@ public class FlameFrame extends JPanel {
 
         JMenuItem rotateClockwiseMenuItem = new JMenuItem("Rotate Clockwise");
         rotateClockwiseMenuItem.addActionListener((ActionEvent e) -> {
-            // TODO disable this and other iteration-dependent actions while paused
-            viewManager.rotate(1);
+            if (!iterationPaused) {
+                viewManager.rotate(1);                
+            }
         });
         rotateClockwiseMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_CLOSE_BRACKET,
                 Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
@@ -414,7 +423,9 @@ public class FlameFrame extends JPanel {
 
         JMenuItem rotateCounterClockwiseMenuItem = new JMenuItem("Rotate Counterclockwise");
         rotateCounterClockwiseMenuItem.addActionListener((ActionEvent e) -> {
-            viewManager.rotate(-1);
+            if (!iterationPaused) {
+                viewManager.rotate(-1);                
+            }
         });
         rotateCounterClockwiseMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_OPEN_BRACKET, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
