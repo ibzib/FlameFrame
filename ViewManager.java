@@ -41,8 +41,6 @@ public class ViewManager extends MouseInputAdapter implements MouseWheelListener
     }
 
     public void rotate(int turns) {
-        // System.out.format("Mouse pointer: (%f, %f)\n", mousePointer.x,
-        // mousePointer.y);
         Position center = isMouseInside ? mousePointer : getCenter();
         center = center.getRotation(-rotation);
         center = center.getSum(scroll);
@@ -92,6 +90,7 @@ public class ViewManager extends MouseInputAdapter implements MouseWheelListener
 
     public void mouseEntered(MouseEvent e) {
         isMouseInside = true;
+        mousePointer = new Position(e.getX(), e.getY());
     }
 
     public void mouseExited(MouseEvent e) {
