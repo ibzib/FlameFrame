@@ -31,10 +31,23 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class FlameFrame extends JPanel {
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
+    // program state information
+    private Function[] functionSet;
+    private ChaosGame game;
+    private BufferedImage currentImage;
+    private int targetFPS = 15;
+    private boolean iterationPaused = false;
+    private boolean renderingStopped = false;
+    private int iterationsPerFrame = 1000;
+    private int drawNowIterations = 5000000;
+    private Position previousScroll = new Position(0, 0);
     // UI components
     private final String drawNowStr = "Draw Now";
     private final String appName = "FlameFrame";
+    JTextField iterationsPerFrameInput = new JTextField(String.format("%d", iterationsPerFrame));
+    JTextField drawNowInput = new JTextField(String.format("%d", drawNowIterations));
+    private JTextField[] blendInputs = new JTextField[Function.variations.length];
     private JFrame frame = new JFrame();
     ViewManager viewManager = new ViewManager();
     private JPanel sidebar = new JPanel();
@@ -50,16 +63,6 @@ public class FlameFrame extends JPanel {
     private JMenuItem boldMenuItem;
     private final String showBoldMessage = "Bold Points";
     private final String unBoldMessage = "Unbold Points";
-    // program state information
-    private Function[] functionSet;
-    private ChaosGame game;
-    private BufferedImage currentImage;
-    private int targetFPS = 15;
-    private boolean iterationPaused = false;
-    private boolean renderingStopped = false;
-    private int lowIterations = 1000;
-    private int highIterations = 5000000;
-    private Position previousScroll = new Position(0, 0);
 
     public static void main(String[] args) {
         try {
@@ -180,9 +183,6 @@ public class FlameFrame extends JPanel {
         drawNowTitle.setFont(boldFont);
         iterationPanel.add(drawNowTitle);
         iterationPanel.add(new JLabel());
-        String highIterationsStr = String.format("%d", highIterations);
-        // TODO get highIterationsStr via method
-        JTextField drawNowInput = new JTextField(highIterationsStr); 
         iterationPanel.add(drawNowInput);
         JButton drawNowButton = new JButton(drawNowAction);
         drawNowButton.setText("Go");
@@ -192,34 +192,34 @@ public class FlameFrame extends JPanel {
         settingsTitle.setFont(boldFont);
         iterationPanel.add(settingsTitle);
         iterationPanel.add(new JLabel());
-        JTextField iterationsPerFrameInput = new JTextField(String.format("%d", lowIterations));
         JLabel perFrameMessage = new JLabel("Points/Frame");
         perFrameMessage.setForeground(Color.gray);
         iterationPanel.add(perFrameMessage);
         iterationPanel.add(iterationsPerFrameInput);
         sidebar.add(iterationPanel, BorderLayout.NORTH);
         // blend settings
-        JPanel blendList = new JPanel(new GridLayout(Function.variations.length, 2));
+        JPanel blendPanel = new JPanel(new GridLayout(Function.variations.length, 2));
         for (int i = 0; i < Function.variations.length; i++) {
             JLabel variationLabel = new JLabel(Function.variations[i].getName());
             variationLabel.setForeground(Color.gray);
-            blendList.add(variationLabel);
-            blendList.add(new JTextField(String.format("%f", functionSet[0].getBlend(i))));
+            blendPanel.add(variationLabel);
+            blendInputs[i] = new JTextField(String.format("%f", functionSet[0].getBlend(i)));
+            blendPanel.add(blendInputs[i]);
         }
-        JScrollPane blendPane = new JScrollPane(blendList);
+        JScrollPane blendScrollPane = new JScrollPane(blendPanel);
         JLabel headerLabel = new JLabel("Blend Values");
         JPanel header = new JPanel();
         header.add(headerLabel);
-        blendPane.setColumnHeaderView(header);
-        blendPane.setBorder(null);
-        sidebar.add(blendPane, BorderLayout.CENTER);
+        blendScrollPane.setColumnHeaderView(header);
+        blendScrollPane.setBorder(null);
+        sidebar.add(blendScrollPane, BorderLayout.CENTER);
         // finishing touches
         double minimumWidth = Math.max(iterationPanel.getPreferredSize().getWidth(),
-                blendList.getPreferredSize().getWidth());
+                blendPanel.getPreferredSize().getWidth());
         sidebar.setMinimumSize(new Dimension((int) minimumWidth, 0));
         sidebar.setSize(sidebar.getMinimumSize());
         JButton applySettingsButton = new JButton("Apply Settings");
-        // TODO add functionality to applySettingsButton
+        applySettingsButton.addActionListener(applySettingsAction);
         sidebar.add(applySettingsButton, BorderLayout.SOUTH);
     }
 
@@ -262,8 +262,44 @@ public class FlameFrame extends JPanel {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            // TODO Auto-generated method stub
-            iterate(highIterations);
+            try {
+                int iterations = Integer.parseInt(drawNowInput.getText());
+                if (iterations <= 0) {
+                    throw new NumberFormatException("Number of points to draw must be greater than 0");
+                }
+                iterate(iterations);                
+            } catch (NumberFormatException ex) {
+                // TODO warning window
+                ex.printStackTrace();
+            }
+        }
+    };
+    
+    private AbstractAction applySettingsAction = new AbstractAction() {
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+                int ipfInput = Integer.parseInt(iterationsPerFrameInput.getText());
+                if (ipfInput <= 0) {
+                    throw new NumberFormatException("Points/Frame must be greater than 0");
+                }
+                iterationsPerFrame = ipfInput;
+                for (int i = 0; i < Function.variations.length; i++) {
+                    double blendInput = Double.parseDouble(blendInputs[i].getText());
+                    if (blendInput < 0) {
+                        throw new NumberFormatException("Blend value cannot be negative");
+                    }
+                    for (int j = 0; j < functionSet.length; j++) {
+                        functionSet[j].setBlend(i, blendInput);
+                    }
+                }
+            } catch (NumberFormatException ex) {
+                // TODO show warning pop-up
+                ex.printStackTrace();
+            }
+
+            clearScreen();
         }
     };
 
@@ -322,10 +358,8 @@ public class FlameFrame extends JPanel {
                 KeyStroke.getKeyStroke(KeyEvent.VK_K, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         iterationMenu.add(playPauseMenuItem);
 
-        JMenuItem clearMenuItem = new JMenuItem("Clear Iterations");
-        clearMenuItem.addActionListener((ActionEvent e) -> {
-            clearScreen();
-        });
+        JMenuItem clearMenuItem = new JMenuItem("Refresh Screen");
+        clearMenuItem.addActionListener(applySettingsAction);
         clearMenuItem.setAccelerator(
                 KeyStroke.getKeyStroke(KeyEvent.VK_R, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         iterationMenu.add(clearMenuItem);
@@ -431,7 +465,7 @@ public class FlameFrame extends JPanel {
 
     public void paintComponent(Graphics g) {
         if (!iterationPaused) {
-            iterate(lowIterations);
+            iterate(iterationsPerFrame);
         }
         updateImage();
         g.drawImage(currentImage, 0, 0, null);
