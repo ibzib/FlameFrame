@@ -4,7 +4,7 @@ import java.io.UnsupportedEncodingException;
 
 // represents one function in an IFS
 public class Function {
-    public MyColor color;
+    public MyColor color = new MyColor();
     private double[] blend; // variational coefficients
     private double[] params; // parametric coefficients
     private double[] affine; // matrix coefficients
@@ -14,23 +14,18 @@ public class Function {
         return weight;
     }
 
-    public Function(MyColor color, double[] b, double[] p, double[] a, double w) {
+    public Function(double[] b, double[] p, double[] a, double w) {
         assert b.length == variations.length;
         assert p.length >= paramsRequired;
         assert affine.length == 6;
 
-        this.color = color;
         blend = b;
         params = p;
         affine = a;
     }
 
-    public Function(MyColor color, double[] a, double w) {
-        this(color, new double[variations.length], new double[paramsRequired], a, w);
-    }
-
-    public MyColor getColor() {
-        return color;
+    public Function(double[] a, double w) {
+        this(new double[variations.length], new double[paramsRequired], a, w);
     }
     
     public void setBlend(int variationIndex, double value) {
@@ -126,5 +121,5 @@ public class Function {
                 double r = p.radius();
                 double t = p.theta();
                 return new Position(Math.sin(t * r), -1 * Math.cos(t * r)).getScale(r);
-            }) };
+            })};
 }

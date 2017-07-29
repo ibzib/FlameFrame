@@ -58,7 +58,7 @@ public final class ChaosGame {
             if (posY < 0 || posX >= getWidth() || posY >= getHeight() || posX < 0) {
                 outOfBounds++;
             } else if (iterationsRun >= ignoredIterations) {
-                currentColor.averageRGB(system[f].getColor());
+                currentColor.averageRGB(system[f].color);
                 plot[posX][posY].r = currentColor.r;
                 plot[posX][posY].g = currentColor.g;
                 plot[posX][posY].b = currentColor.b;

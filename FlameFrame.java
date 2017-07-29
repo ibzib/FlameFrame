@@ -10,13 +10,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -27,6 +27,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
@@ -51,6 +52,7 @@ public class FlameFrame extends JPanel {
     JTextField iterationsPerFrameInput = new JTextField(String.format("%d", iterationsPerFrame));
     JTextField drawNowInput = new JTextField(String.format("%d", drawNowIterations));
     private JTextField[] blendInputs = new JTextField[Function.variations.length];
+    private JSlider colorSlider = new JSlider();
     private JFrame frame = new JFrame();
     ViewManager viewManager = new ViewManager();
     private JPanel sidebar = new JPanel();
@@ -180,7 +182,9 @@ public class FlameFrame extends JPanel {
     private void setUpSidebar() {
         sidebar.setLayout(new BorderLayout());
         // iteration settings
-        JPanel iterationPanel = new JPanel(new GridLayout(4, 2));
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.PAGE_AXIS));
+        JPanel iterationPanel = new JPanel(new GridLayout(5, 2));
         // draw now
         JLabel drawNowTitle = new JLabel(drawNowStr);
         Font boldFont = new Font(drawNowTitle.getFont().getFontName(), Font.BOLD, drawNowTitle.getFont().getSize());
@@ -200,7 +204,14 @@ public class FlameFrame extends JPanel {
         perFrameMessage.setForeground(Color.gray);
         iterationPanel.add(perFrameMessage);
         iterationPanel.add(iterationsPerFrameInput);
-        sidebar.add(iterationPanel, BorderLayout.NORTH);
+        // color
+        JLabel colorMessage = new JLabel("Color");
+        colorMessage.setForeground(Color.gray);
+        iterationPanel.add(colorMessage);
+        topPanel.add(iterationPanel);
+        colorSlider.setValue(0);
+        topPanel.add(colorSlider);
+        sidebar.add(topPanel, BorderLayout.NORTH);
         // blend settings
         JPanel blendPanel = new JPanel(new GridLayout(Function.variations.length, 2));
         for (int i = 0; i < Function.variations.length; i++) {
@@ -241,7 +252,6 @@ public class FlameFrame extends JPanel {
                     "res/icon16.png" };
             ArrayList<BufferedImage> iconImages = new ArrayList<BufferedImage>();
             for (int i = 0; i < iconPaths.length; i++) {
-                System.out.println("read in " + iconPaths[i]);
                 InputStream imgStream = FlameFrame.class.getResourceAsStream(iconPaths[i]);
                 iconImages.add(ImageIO.read(imgStream));
             }
@@ -283,11 +293,18 @@ public class FlameFrame extends JPanel {
         }
     };
     
+    private void setColors(double colorValue) {
+        for (int i = 0; i < functionSet.length; i++) {
+            functionSet[i].color = MyColor.getColor(colorValue + (double)i/functionSet.length);
+        }
+    }
+    
     private AbstractAction applySettingsAction = new AbstractAction() {
 
         @Override
         public void actionPerformed(ActionEvent e) {
             try {
+                setColors(0.01 * colorSlider.getValue());
                 int ipfInput = Integer.parseInt(iterationsPerFrameInput.getText());
                 if (ipfInput <= 0) {
                     throw new NumberFormatException("Points/Frame must be greater than 0");
@@ -438,9 +455,9 @@ public class FlameFrame extends JPanel {
     private void initialize() {
         game = new ChaosGame(this.getWidth(), this.getHeight());
         functionSet = new Function[] {
-                new Function(MyColor.getColor(0.0), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
-                new Function(MyColor.getColor(0.3333333), new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
-                new Function(MyColor.getColor(0.6666666), new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1) };
+                new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0f }, 1),
+                new Function(new double[] { 0.5f, 0f, 0.5f, 0f, 0.5f, 0 }, 1),
+                new Function(new double[] { 0.5f, 0f, 0f, 0f, 0.5f, 0.5f }, 1) };
         for (Function func : functionSet) {
             func.setBlend(0, 1.0);
             // func.setBlend(1, 0.25);
@@ -450,6 +467,7 @@ public class FlameFrame extends JPanel {
             // func.setBlend(5, 1.0);
             func.setBlend(6, 1.0);
         }
+        setColors(0);
     }
 
     public void renderLoop() throws InterruptedException {
