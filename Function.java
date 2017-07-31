@@ -104,7 +104,10 @@ public class Function {
     public static final Variation[] variations = {
             new Variation("Linear", (params, affine, p) -> new Position(p.x, p.y)),
             new Variation("Sinusoidal", (params, affine, p) -> new Position(Math.sin(p.x), Math.sin(p.y))),
-            new Variation("Spherical", (params, affine, p) -> p.getScale(p.radius())),
+            new Variation("Spherical", (params, affine, p) -> {
+                double r = p.radius();
+                return p.getScale(1/(r*r));
+            }),
             new Variation("Swirl", (params, affine, p) -> {
                 double r = p.radius();
                 double x = p.x * Math.sin(r * r) - p.y * Math.cos(r * r);
