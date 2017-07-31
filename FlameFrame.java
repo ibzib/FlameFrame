@@ -28,9 +28,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -51,7 +53,7 @@ public class FlameFrame extends JPanel {
     private final String appName = "FlameFrame";
     JTextField iterationsPerFrameInput = new JTextField(String.format("%d", iterationsPerFrame));
     JTextField drawNowInput = new JTextField(String.format("%d", drawNowIterations));
-    private JTextField[] blendInputs = new JTextField[Function.variations.length];
+    private JSpinner[] blendInputs = new JSpinner[Function.variations.length];
     private JSlider colorSlider = new JSlider();
     private JFrame frame = new JFrame();
     ViewManager viewManager = new ViewManager();
@@ -218,7 +220,8 @@ public class FlameFrame extends JPanel {
             JLabel variationLabel = new JLabel(Function.variations[i].getName());
             variationLabel.setForeground(Color.gray);
             blendPanel.add(variationLabel);
-            blendInputs[i] = new JTextField(String.format("%f", functionSet[0].getBlend(i)));
+            blendInputs[i] = new JSpinner(new SpinnerNumberModel(functionSet[0].getBlend(i), 0, 1, 0.1));
+            blendInputs[i].setEditor(new JSpinner.DefaultEditor(blendInputs[i]));
             blendPanel.add(blendInputs[i]);
         }
         JScrollPane blendScrollPane = new JScrollPane(blendPanel);
@@ -311,7 +314,7 @@ public class FlameFrame extends JPanel {
                 }
                 iterationsPerFrame = ipfInput;
                 for (int i = 0; i < Function.variations.length; i++) {
-                    double blendInput = Double.parseDouble(blendInputs[i].getText());
+                    Double blendInput = (Double)blendInputs[i].getValue();
                     if (blendInput < 0) {
                         throw new NumberFormatException("Blend value cannot be negative");
                     }
@@ -325,7 +328,7 @@ public class FlameFrame extends JPanel {
                 play();
             }
             for (int i = 0; i < Function.variations.length; i++) {
-                blendInputs[i].setText(String.format("%f", functionSet[0].getBlend(i)));
+                blendInputs[i].setValue(functionSet[0].getBlend(i));
             }
             clearScreen();
         }
