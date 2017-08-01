@@ -8,3 +8,6 @@ The viewer renders fractals to the screen in real time. You can drag, rotate, an
 
 ## Settings
 You can change the blend values for different functions (known as "variations") to change the appearance of the image. You can also shift the color spectrum used. You must press "Apply Settings" before your changes can take effect.
+
+## Example
+![Example Image](res/swirl.jpg "Example")
